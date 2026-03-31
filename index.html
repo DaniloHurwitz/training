@@ -6,297 +6,311 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>FitTracker Pro</title>
+    <title>FitHome - Tu Entrenador Personal</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
         }
 
         :root {
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
+            --bg-card: #334155;
             --accent: #3b82f6;
             --accent-hover: #2563eb;
             --success: #10b981;
-            --warning: #f59e0b;
             --danger: #ef4444;
             --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --border: #334155;
+            --text-secondary: #94a3b8;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #1e293b 100%);
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
-            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* HEADER */
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
         .header {
-            background: var(--bg-secondary);
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.6s ease;
         }
 
         .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
+            margin-bottom: 5px;
         }
 
-        .back-btn {
-            background: var(--bg-tertiary);
-            border: none;
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
+        .header p {
+            color: var(--text-secondary);
             font-size: 0.9rem;
-            transition: all 0.2s;
-            font-weight: 500;
         }
 
-        .back-btn:active {
-            transform: scale(0.95);
+        /* Streak Badge */
+        .streak-badge {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.6s ease 0.2s backwards;
         }
 
-        /* CONTAINER */
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 1.5rem;
+        .streak-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        /* HOME SCREEN */
-        .home-screen {
-            animation: fadeIn 0.3s ease;
+        .streak-icon {
+            font-size: 2rem;
         }
 
-        .stats-card {
-            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-            padding: 1.5rem;
-            border-radius: 1rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--border);
+        .streak-text h3 {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
         }
 
+        .streak-text p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s ease 0.3s backwards;
         }
 
-        .stat-item {
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 15px;
             text-align: center;
+            box-shadow: var(--shadow);
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: var(--accent);
+            margin-bottom: 5px;
         }
 
         .stat-label {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .day-grid {
+        /* Day Buttons */
+        .days-container {
             display: grid;
-            gap: 1rem;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .day-card {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.5rem;
+        .day-button {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            border: 2px solid transparent;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            animation: fadeInUp 0.6s ease backwards;
         }
 
-        .day-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent);
-            opacity: 0;
-            transition: opacity 0.2s;
+        .day-button:nth-child(1) { animation-delay: 0.1s; }
+        .day-button:nth-child(2) { animation-delay: 0.2s; }
+        .day-button:nth-child(3) { animation-delay: 0.3s; }
+        .day-button:nth-child(4) { animation-delay: 0.4s; }
+
+        .day-button:active {
+            transform: scale(0.97);
         }
 
-        .day-card:active {
-            transform: scale(0.98);
-        }
-
-        .day-card:hover::before {
-            opacity: 1;
-        }
-
-        .day-card.completed {
+        .day-button.completed {
             border-color: var(--success);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, var(--bg-secondary) 100%);
         }
 
-        .day-card.completed::before {
-            background: var(--success);
-            opacity: 1;
+        .day-info {
+            flex: 1;
         }
 
         .day-name {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            margin-bottom: 5px;
         }
 
-        .day-type {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .day-exercises {
-            color: var(--text-secondary);
+        .day-focus {
             font-size: 0.85rem;
+            color: var(--text-secondary);
         }
 
-        .completed-badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: var(--success);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 1rem;
-            font-size: 0.75rem;
-            font-weight: 600;
+        .day-icon {
+            font-size: 1.8rem;
         }
 
-        /* WORKOUT SCREEN */
-        .workout-screen {
-            animation: slideIn 0.3s ease;
+        /* Screen States */
+        .screen {
+            display: none;
         }
 
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* Workout Screen */
         .workout-header {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid var(--border);
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
         }
 
         .workout-title {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 10px;
         }
 
         .workout-progress {
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            margin-top: 15px;
         }
 
+        .progress-bar-bg {
+            background: var(--bg-secondary);
+            height: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--accent) 0%, #8b5cf6 100%);
+            height: 100%;
+            transition: width 0.4s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* Exercise List */
         .exercise-list {
-            display: grid;
-            gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .exercise-card {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.25rem;
-            transition: all 0.2s;
-        }
-
-        .exercise-card.completed {
-            border-color: var(--success);
-            opacity: 0.7;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
         }
 
         .exercise-card.active {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, var(--bg-card) 100%);
+        }
+
+        .exercise-card.completed {
+            opacity: 0.7;
+            border-color: var(--success);
         }
 
         .exercise-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 1rem;
+            align-items: flex-start;
+            margin-bottom: 10px;
         }
 
         .exercise-name {
             font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            flex: 1;
+        }
+
+        .exercise-status {
+            font-size: 1.5rem;
         }
 
         .exercise-details {
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
         }
 
-        .exercise-buttons {
+        .exercise-actions {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 8px;
         }
 
         .btn {
-            flex: 1;
-            padding: 0.75rem;
+            padding: 12px 20px;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            flex: 1;
         }
 
         .btn-primary {
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
             color: white;
         }
 
         .btn-primary:active {
-            background: var(--accent-hover);
-            transform: scale(0.95);
+            transform: scale(0.97);
         }
 
         .btn-secondary {
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
             color: var(--text-primary);
-        }
-
-        .btn-secondary:active {
-            transform: scale(0.95);
         }
 
         .btn-success {
@@ -304,189 +318,252 @@
             color: white;
         }
 
-        .btn-success:active {
-            transform: scale(0.95);
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85rem;
         }
 
-        /* EXERCISE MODAL */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 1rem;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--bg-secondary);
-            border-radius: 1rem;
-            padding: 2rem;
-            max-width: 500px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-        }
-
-        .close-btn {
-            background: var(--bg-tertiary);
-            border: none;
-            color: var(--text-primary);
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-body {
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* TRAINING MODE */
+        /* Training Mode */
         .training-mode {
-            animation: fadeIn 0.3s ease;
-        }
-
-        .training-header {
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            padding: 2rem 1.5rem;
-            border-radius: 1rem;
-            margin-bottom: 2rem;
             text-align: center;
+            padding: 30px 20px;
         }
 
-        .training-exercise-name {
-            font-size: 1.5rem;
+        .current-exercise {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .exercise-title-large {
+            font-size: 1.6rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .training-details {
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-
-        .training-progress {
-            background: var(--bg-secondary);
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            border: 1px solid var(--border);
-        }
-
-        .current-set {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
+            margin-bottom: 20px;
+            line-height: 1.3;
         }
 
         .set-info {
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 10px;
         }
 
         .reps-info {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-top: 1rem;
+            font-size: 1.3rem;
             color: var(--text-secondary);
+            margin-bottom: 25px;
         }
 
-        /* REST TIMER */
+        /* Rest Timer */
         .rest-timer {
-            background: linear-gradient(135deg, var(--warning), #f97316);
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, var(--bg-card) 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 25px;
+            border: 2px solid var(--danger);
         }
 
         .rest-label {
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            opacity: 0.9;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
         }
 
         .timer-display {
-            font-size: 4rem;
-            font-weight: 700;
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: var(--danger);
+            margin-bottom: 20px;
             font-variant-numeric: tabular-nums;
-            margin-bottom: 1rem;
         }
 
         .timer-controls {
             display: flex;
-            gap: 0.5rem;
+            gap: 10px;
             justify-content: center;
+            margin-bottom: 15px;
         }
 
         .timer-btn {
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--bg-secondary);
             border: none;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
+            border-radius: 12px;
+            padding: 10px 15px;
+            color: var(--text-primary);
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
 
         .timer-btn:active {
             transform: scale(0.95);
         }
 
-        /* PROGRESS BAR */
-        .progress-bar-container {
-            background: var(--bg-tertiary);
-            height: 0.5rem;
-            border-radius: 1rem;
-            overflow: hidden;
-            margin-bottom: 1rem;
+        /* Exercise Guide */
+        .exercise-guide {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
         }
 
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #8b5cf6);
-            transition: width 0.3s ease;
+        .guide-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--accent);
         }
 
-        /* ANIMATIONS */
+        .guide-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        /* Edit Mode */
+        .edit-controls {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .edit-controls.active {
+            display: block;
+        }
+
+        .edit-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .edit-input {
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-card);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text-primary);
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 450px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-card);
+            border-radius: 10px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* Back Button */
+        .back-btn {
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Progress History */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .history-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .history-day {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Animations */
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -496,814 +573,946 @@
             }
         }
 
-        @keyframes slideIn {
+        @keyframes fadeInDown {
             from {
-                transform: translateX(100%);
                 opacity: 0;
+                transform: translateY(-20px);
             }
             to {
-                transform: translateX(0);
                 opacity: 1;
+                transform: translateY(0);
             }
         }
 
-        @keyframes slideUp {
+        @keyframes fadeInUp {
             from {
-                transform: translateY(20px);
                 opacity: 0;
+                transform: translateY(20px);
             }
             to {
-                transform: translateY(0);
                 opacity: 1;
+                transform: translateY(0);
             }
         }
 
         @keyframes pulse {
             0%, 100% {
-                opacity: 1;
+                transform: scale(1);
             }
             50% {
-                opacity: 0.5;
+                transform: scale(1.05);
             }
         }
 
-        .pulsing {
-            animation: pulse 1s ease-in-out infinite;
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        /* UTILITIES */
-        .hidden {
-            display: none !important;
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 2000;
+            display: none;
+            animation: slideUp 0.3s ease;
         }
 
-        .text-center {
-            text-align: center;
+        .toast.active {
+            display: block;
         }
 
-        .mb-1 {
-            margin-bottom: 1rem;
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
         }
 
-        .mb-2 {
-            margin-bottom: 2rem;
-        }
-
-        /* RESPONSIVE */
-        @media (min-width: 768px) {
-            .day-grid {
-                grid-template-columns: repeat(2, 1fr);
+        /* Responsive */
+        @media (max-width: 380px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            .day-name {
+                font-size: 1.1rem;
+            }
+            .set-info {
+                font-size: 2.5rem;
+            }
+            .timer-display {
+                font-size: 3.5rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- HEADER -->
-    <div class="header">
-        <h1>💪 FitTracker Pro</h1>
-        <button class="back-btn hidden" id="backBtn">← Volver</button>
-    </div>
-
-    <!-- MAIN CONTAINER -->
-    <div class="container">
+    <div class="app-container">
         <!-- HOME SCREEN -->
-        <div id="homeScreen" class="home-screen">
-            <div class="stats-card">
-                <h2>Tu Progreso</h2>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value" id="weekWorkouts">0</div>
-                        <div class="stat-label">Esta semana</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="totalWorkouts">0</div>
-                        <div class="stat-label">Total</div>
+        <div id="homeScreen" class="screen active">
+            <div class="header">
+                <h1>💪 FitHome</h1>
+                <p>Entrena sin equipo, gana músculo real</p>
+            </div>
+
+            <div class="streak-badge">
+                <div class="streak-info">
+                    <div class="streak-icon">🔥</div>
+                    <div class="streak-text">
+                        <h3 id="streakCount">0</h3>
+                        <p>Racha semanal</p>
                     </div>
                 </div>
             </div>
 
-            <div class="day-grid">
-                <div class="day-card" data-day="martes">
-                    <div class="day-name">🔵 Martes</div>
-                    <div class="day-type">PULL - Espalda & Bíceps</div>
-                    <div class="day-exercises">6 ejercicios</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="weeklyWorkouts">0</div>
+                    <div class="stat-label">Semana</div>
                 </div>
-
-                <div class="day-card" data-day="miercoles">
-                    <div class="day-name">🔴 Miércoles</div>
-                    <div class="day-type">PUSH - Pecho & Tríceps</div>
-                    <div class="day-exercises">6 ejercicios</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthlyWorkouts">0</div>
+                    <div class="stat-label">Mes</div>
                 </div>
-
-                <div class="day-card" data-day="jueves">
-                    <div class="day-name">🟢 Jueves</div>
-                    <div class="day-type">PIERNAS & CORE</div>
-                    <div class="day-exercises">7 ejercicios</div>
-                </div>
-
-                <div class="day-card" data-day="domingo">
-                    <div class="day-name">🟡 Domingo</div>
-                    <div class="day-type">UPPER & BRAZOS</div>
-                    <div class="day-exercises">6 ejercicios</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalWorkouts">0</div>
+                    <div class="stat-label">Total</div>
                 </div>
             </div>
+
+            <div class="days-container">
+                <div class="day-button" data-day="martes">
+                    <div class="day-info">
+                        <div class="day-name">Martes</div>
+                        <div class="day-focus">Pull • Espalda + Bíceps</div>
+                    </div>
+                    <div class="day-icon">💪</div>
+                </div>
+
+                <div class="day-button" data-day="miercoles">
+                    <div class="day-info">
+                        <div class="day-name">Miércoles</div>
+                        <div class="day-focus">Push • Pecho + Tríceps</div>
+                    </div>
+                    <div class="day-icon">🔥</div>
+                </div>
+
+                <div class="day-button" data-day="jueves">
+                    <div class="day-info">
+                        <div class="day-name">Jueves</div>
+                        <div class="day-focus">Piernas + Core</div>
+                    </div>
+                    <div class="day-icon">🦵</div>
+                </div>
+
+                <div class="day-button" data-day="domingo">
+                    <div class="day-info">
+                        <div class="day-name">Domingo</div>
+                        <div class="day-focus">Upper + Brazos</div>
+                    </div>
+                    <div class="day-icon">💯</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="showHistory()" style="width: 100%; margin-bottom: 15px;">
+                📊 Ver Historial
+            </button>
+
+            <button class="btn btn-secondary" onclick="showAddExercise()" style="width: 100%;">
+                ➕ Agregar Ejercicio Personalizado
+            </button>
         </div>
 
         <!-- WORKOUT SCREEN -->
-        <div id="workoutScreen" class="workout-screen hidden">
+        <div id="workoutScreen" class="screen">
+            <button class="back-btn" onclick="goHome()">
+                ← Volver
+            </button>
+
             <div class="workout-header">
-                <div class="workout-title" id="workoutTitle">Entrenamiento</div>
-                <div class="workout-progress" id="workoutProgress">0/0 completados</div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                <div class="workout-title" id="workoutTitle">Workout</div>
+                <div class="workout-progress">
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0/0 ejercicios completados</div>
                 </div>
             </div>
 
             <div class="exercise-list" id="exerciseList"></div>
+
+            <button class="btn btn-success" onclick="completeWorkout()" style="width: 100%; margin-top: 20px;">
+                ✅ Finalizar Entrenamiento
+            </button>
         </div>
 
         <!-- TRAINING MODE SCREEN -->
-        <div id="trainingScreen" class="training-mode hidden">
-            <div class="training-header">
-                <div class="training-exercise-name" id="trainingExerciseName"></div>
-                <div class="training-details" id="trainingExerciseDetails"></div>
-            </div>
+        <div id="trainingScreen" class="screen">
+            <button class="back-btn" onclick="exitTraining()">
+                ← Salir
+            </button>
 
-            <div class="training-progress">
-                <div class="current-set" id="currentSetDisplay">1/4</div>
-                <div class="set-info">Serie actual</div>
-                <div class="reps-info" id="repsDisplay">12 repeticiones</div>
-            </div>
+            <div class="training-mode">
+                <div class="current-exercise">
+                    <div class="exercise-title-large" id="trainingExerciseName"></div>
+                    <div class="set-info" id="trainingSetInfo"></div>
+                    <div class="reps-info" id="trainingRepsInfo"></div>
+                </div>
 
-            <div id="restTimerContainer" class="rest-timer hidden">
-                <div class="rest-label">⏱️ Descanso</div>
-                <div class="timer-display" id="timerDisplay">60</div>
-                <div class="timer-controls">
-                    <button class="timer-btn" id="skipRestBtn">Saltar</button>
-                    <button class="timer-btn" id="addTimeBtn">+15s</button>
+                <div class="exercise-guide" id="trainingGuide" style="display: none;">
+                    <div class="guide-title">📋 Cómo hacerlo</div>
+                    <div class="guide-text" id="guideText"></div>
+                    <button class="btn btn-secondary btn-small" onclick="speakGuide()">
+                        🔊 Escuchar
+                    </button>
+                </div>
+
+                <div class="rest-timer" id="restTimer" style="display: none;">
+                    <div class="rest-label">⏱️ Descanso</div>
+                    <div class="timer-display" id="timerDisplay">60</div>
+                    <div class="timer-controls">
+                        <button class="timer-btn" onclick="adjustTimer(-10)">-10s</button>
+                        <button class="timer-btn" onclick="adjustTimer(10)">+10s</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="skipRest()" style="max-width: 200px; margin: 0 auto;">
+                        Saltar ⏭️
+                    </button>
+                </div>
+
+                <div id="trainingActions">
+                    <button class="btn btn-primary" onclick="completeSet()" style="width: 100%; padding: 18px; font-size: 1.1rem;">
+                        ✓ Terminé Serie
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <button class="btn btn-success" id="completeSetBtn" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
-                ✓ Terminé la serie
+        <!-- HISTORY SCREEN -->
+        <div id="historyScreen" class="screen">
+            <button class="back-btn" onclick="goHome()">
+                ← Volver
             </button>
 
-            <button class="btn btn-secondary" id="finishExerciseBtn" style="width: 100%; padding: 1rem; margin-top: 1rem; font-size: 1.1rem;">
-                Terminar ejercicio
-            </button>
+            <div class="workout-header">
+                <div class="workout-title">📊 Historial</div>
+            </div>
+
+            <div class="history-list" id="historyList"></div>
         </div>
     </div>
 
-    <!-- EXPLANATION MODAL -->
-    <div class="modal" id="explanationModal">
+    <!-- ADD EXERCISE MODAL -->
+    <div id="addExerciseModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="modalTitle">Ejercicio</div>
-                <button class="close-btn" id="closeModal">×</button>
+            <div class="modal-header">➕ Nuevo Ejercicio</div>
+            
+            <div class="form-group">
+                <label class="form-label">Día</label>
+                <select id="newExerciseDay" class="form-input">
+                    <option value="martes">Martes (Pull)</option>
+                    <option value="miercoles">Miércoles (Push)</option>
+                    <option value="jueves">Jueves (Piernas)</option>
+                    <option value="domingo">Domingo (Upper)</option>
+                </select>
             </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-actions">
-                <button class="btn btn-primary" id="speakBtn" style="width: 100%;">
-                    🔊 Reproducir explicación
+
+            <div class="form-group">
+                <label class="form-label">Nombre del ejercicio</label>
+                <input type="text" id="newExerciseName" class="form-input" placeholder="Ej: Flexiones Archer">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Series</label>
+                <input type="number" id="newExerciseSets" class="form-input" value="3" min="1">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Repeticiones (o tiempo en segundos)</label>
+                <input type="text" id="newExerciseReps" class="form-input" placeholder="Ej: 12 o 45 seg">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Guía / Explicación</label>
+                <textarea id="newExerciseGuide" class="form-input form-textarea" placeholder="Describe cómo hacer el ejercicio..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">
+                    Cancelar
+                </button>
+                <button class="btn btn-primary" onclick="addCustomExercise()" style="flex: 1;">
+                    Agregar
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast"></div>
+
     <script>
-        // ============================================
-        // DATA - Rutinas de entrenamiento
-        // ============================================
-        const workouts = {
+        // ==================== DATA STRUCTURE ====================
+        const DEFAULT_WORKOUTS = {
             martes: {
-                name: 'Martes - PULL',
-                type: 'Espalda & Bíceps',
+                name: "MARTES - PULL",
+                focus: "Espalda + Bíceps + Core",
                 exercises: [
                     {
-                        name: 'Dominadas asistidas',
+                        id: 1,
+                        name: "Remo invertido (bajo mesa o entre sillas)",
                         sets: 4,
-                        reps: '6-8',
-                        rest: 90,
-                        explanation: 'Coloca una banda elástica o usa apoyo de piernas. Agarra la barra con las manos separadas al ancho de hombros, palmas hacia adelante. Tira de tu cuerpo hacia arriba hasta que la barbilla pase la barra, mantén la espalda recta. Desciende controladamente. Enfócate en activar la espalda, no solo los brazos.'
+                        reps: "10-15",
+                        guide: "Colócate bajo una mesa o entre dos sillas. Agarra el borde y mantén el cuerpo recto. Tira del pecho hacia arriba manteniendo el core activado. Baja con control.",
+                        restTime: 90
                     },
                     {
-                        name: 'Remo invertido',
+                        id: 2,
+                        name: "Superman hold o Y raises",
+                        sets: 3,
+                        reps: "12-15",
+                        guide: "Acuéstate boca abajo. Levanta brazos y piernas del suelo formando una Y. Mantén tensión en la espalda baja. Si puedes, usa una mochila en la nuca para más resistencia.",
+                        restTime: 60
+                    },
+                    {
+                        id: 3,
+                        name: "Curl bíceps con mochila",
                         sets: 4,
-                        reps: '10-12',
-                        rest: 75,
-                        explanation: 'Colócate debajo de una barra baja o mesa resistente. Agarra con las manos al ancho de hombros, cuerpo recto como tabla. Tira del pecho hacia la barra, apretando los omóplatos. Baja controladamente. Mantén el core activado todo el tiempo.'
+                        reps: "12-15",
+                        guide: "Llena una mochila con libros o botellas de agua. De pie, con la mochila en las manos, flexiona los codos llevando la mochila hacia los hombros. Mantén los codos pegados al cuerpo. Baja con control.",
+                        restTime: 60
                     },
                     {
-                        name: 'Dominadas negativas',
+                        id: 4,
+                        name: "Curl isométrico con toalla",
                         sets: 3,
-                        reps: '5',
-                        rest: 90,
-                        explanation: 'Salta o usa un banco para colocarte en la posición superior de la dominada (barbilla arriba de la barra). Desciende lo más lento posible, controlando el movimiento durante 5-10 segundos. Esto desarrolla fuerza excéntrica crucial para dominadas completas.'
+                        reps: "20-30 seg",
+                        guide: "Pon un pie sobre una toalla. Con las manos, tira de la toalla hacia arriba mientras el pie empuja hacia abajo. Mantén la tensión máxima en los bíceps durante todo el tiempo.",
+                        restTime: 60
                     },
                     {
-                        name: 'Curl de bíceps',
-                        sets: 4,
-                        reps: '10-12',
-                        rest: 60,
-                        explanation: 'De pie, con mancuernas o botella con agua. Codos pegados al cuerpo, palmas hacia adelante. Levanta el peso flexionando el codo, contrae el bíceps en la parte superior. Baja controladamente. No balancees el cuerpo, el movimiento es solo del antebrazo.'
-                    },
-                    {
-                        name: 'Curl isométrico',
+                        id: 5,
+                        name: "Plancha",
                         sets: 3,
-                        reps: '20 seg',
-                        rest: 60,
-                        explanation: 'Con peso en las manos, flexiona los codos a 90 grados y mantén esa posición sin moverte durante 20 segundos. Los bíceps deben arder. Respira normalmente, no aguantes la respiración. Mantén los codos pegados al cuerpo.'
-                    },
-                    {
-                        name: 'Plancha',
-                        sets: 3,
-                        reps: '45 seg',
-                        rest: 60,
-                        explanation: 'Apóyate sobre los antebrazos y punteras de los pies. Cuerpo completamente recto desde cabeza hasta talones. Activa abdomen, glúteos y piernas. No dejes caer la cadera ni la levantes demasiado. Mantén la mirada al suelo ligeramente adelante.'
+                        reps: "45-60 seg",
+                        guide: "Posición de tabla sobre los antebrazos. Cuerpo completamente recto de cabeza a talones. Aprieta el core, glúteos y piernas. No dejes caer la cadera.",
+                        restTime: 60
                     }
                 ]
             },
             miercoles: {
-                name: 'Miércoles - PUSH',
-                type: 'Pecho & Tríceps',
+                name: "MIÉRCOLES - PUSH",
+                focus: "Pecho + Tríceps + Hombros",
                 exercises: [
                     {
-                        name: 'Flexiones',
+                        id: 6,
+                        name: "Flexiones normales",
                         sets: 4,
-                        reps: '10-15',
-                        rest: 75,
-                        explanation: 'Posición de plancha con manos al ancho de hombros. Baja el pecho hasta casi tocar el suelo, manteniendo los codos a 45 grados del cuerpo. Empuja hacia arriba hasta extensión completa. Mantén el cuerpo recto como tabla durante todo el movimiento.'
+                        reps: "10-15",
+                        guide: "Manos a la altura de los hombros. Cuerpo recto como tabla. Baja el pecho hasta casi tocar el suelo. Mantén los codos a 45 grados. Sube con explosividad.",
+                        restTime: 90
                     },
                     {
-                        name: 'Fondos en paralelas',
+                        id: 7,
+                        name: "Flexiones inclinadas (manos en silla)",
+                        sets: 3,
+                        reps: "12",
+                        guide: "Coloca las manos sobre el asiento de una silla, pies en el suelo. Baja el pecho hacia la silla. Esto enfatiza el pecho superior. Mantén el core apretado.",
+                        restTime: 60
+                    },
+                    {
+                        id: 8,
+                        name: "Fondos en silla (tríceps)",
                         sets: 4,
-                        reps: '8-10',
-                        rest: 90,
-                        explanation: 'En barras paralelas o sillas resistentes. Baja el cuerpo flexionando los codos hasta que los brazos estén a 90 grados. Empuja hacia arriba. Mantén el pecho ligeramente inclinado hacia adelante para activar más el pecho. Controla el descenso.'
+                        reps: "8-12",
+                        guide: "Siéntate al borde de la silla. Manos al lado de las caderas. Desliza el cuerpo hacia adelante y baja flexionando los codos hacia atrás. Los codos deben ir hacia atrás, no a los lados. Sube con fuerza de tríceps.",
+                        restTime: 90
                     },
                     {
-                        name: 'Flexiones inclinadas',
-                        sets: 3,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'Manos en superficie elevada (banco, silla). Realiza flexiones con el mismo patrón. Al estar inclinado, trabajas más la parte inferior del pecho. Mantén el core apretado y desciende hasta que el pecho casi toque la superficie.'
+                        id: 9,
+                        name: "Pike push-ups (hombros)",
+                        sets: 4,
+                        reps: "8-12",
+                        guide: "Posición de V invertida. Manos y pies en el suelo, cadera arriba. Baja la cabeza hacia el suelo flexionando los codos. Sube. Esto trabaja hombros de forma vertical.",
+                        restTime: 90
                     },
                     {
-                        name: 'Pike push-ups',
+                        id: 10,
+                        name: "Extensión tríceps overhead",
                         sets: 3,
-                        reps: '8',
-                        rest: 75,
-                        explanation: 'Posición de V invertida, caderas arriba, piernas y brazos extendidos. Flexiona los codos llevando la cabeza hacia el suelo entre las manos. Empuja hacia arriba. Este ejercicio trabaja intensamente los hombros. Mantén la posición de cadera alta.'
-                    },
-                    {
-                        name: 'Extensión de tríceps',
-                        sets: 3,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'Con mancuerna o botella. Brazo extendido sobre la cabeza, flexiona el codo bajando el peso detrás de la cabeza. Extiende completamente. El codo debe estar fijo apuntando al techo. Solo se mueve el antebrazo. Siente el trabajo en la parte posterior del brazo.'
-                    },
-                    {
-                        name: 'Plancha lateral',
-                        sets: 3,
-                        reps: '30 seg',
-                        rest: 60,
-                        explanation: 'Apoyado en un antebrazo y borde del pie. Cuerpo en línea recta lateral. Mantén las caderas elevadas, no dejes que caigan. Activa los oblicuos. Haz un lado, descansa, luego el otro. Puedes poner la mano libre en la cadera o extendida hacia arriba.'
+                        reps: "12-15",
+                        guide: "De pie o sentado. Mochila con peso sobre la cabeza, agarrada con ambas manos. Baja la mochila detrás de la cabeza flexionando solo los codos. Mantén los codos pegados a la cabeza. Sube extendiendo los brazos.",
+                        restTime: 60
                     }
                 ]
             },
             jueves: {
-                name: 'Jueves - PIERNAS',
-                type: 'Piernas & Core',
+                name: "JUEVES - PIERNAS + CORE",
+                focus: "Piernas + Core",
                 exercises: [
                     {
-                        name: 'Sentadillas',
+                        id: 11,
+                        name: "Sentadillas con pausa",
                         sets: 4,
-                        reps: '10-15',
-                        rest: 90,
-                        explanation: 'Pies al ancho de hombros, puntas ligeramente hacia afuera. Baja como si te sentaras en una silla, rodillas en línea con los pies. Baja hasta que los muslos estén paralelos al suelo. Empuja con los talones para subir. Mantén el pecho arriba y la espalda recta.'
+                        reps: "12-15",
+                        guide: "Pies al ancho de hombros. Baja como si te sentaras en una silla. Mantén 2 segundos abajo. El pecho arriba, rodillas alineadas con los pies. Sube empujando con los talones.",
+                        restTime: 120
                     },
                     {
-                        name: 'Sentadilla búlgara',
+                        id: 12,
+                        name: "Sentadilla búlgara (pie trasero en silla)",
                         sets: 3,
-                        reps: '10',
-                        rest: 75,
-                        explanation: 'Pie trasero elevado en banco o silla. Baja flexionando la rodilla delantera hasta 90 grados. La rodilla trasera casi toca el suelo. Empuja con el talón delantero para subir. Mantén el torso erguido. Cambia de pierna. Trabajo intenso de cuádriceps y glúteos.'
+                        reps: "10-12",
+                        guide: "Coloca un pie sobre una silla detrás de ti. El otro pie adelante. Baja flexionando la rodilla delantera hasta casi tocar el suelo con la trasera. Mantén el torso vertical. Sube con fuerza de la pierna delantera.",
+                        restTime: 90
                     },
                     {
-                        name: 'Zancadas',
+                        id: 13,
+                        name: "Zancadas",
                         sets: 3,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'De pie, da un paso largo hacia adelante. Baja hasta que ambas rodillas estén a 90 grados. La rodilla trasera casi toca el suelo. Empuja con el pie delantero para volver. Alterna piernas. Mantén el torso erguido y mira al frente.'
+                        reps: "10 por pierna",
+                        guide: "Da un paso largo hacia adelante. Baja la rodilla trasera hacia el suelo. La rodilla delantera no debe pasar la punta del pie. Sube y repite con la otra pierna.",
+                        restTime: 90
                     },
                     {
-                        name: 'Puente de glúteo',
+                        id: 14,
+                        name: "Puente glúteo una pierna",
                         sets: 3,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'Acostado boca arriba, rodillas flexionadas, pies apoyados. Levanta las caderas apretando los glúteos hasta formar una línea recta desde rodillas a hombros. Mantén arriba 2 segundos apretando. Baja controladamente. No arquees la espalda baja.'
+                        reps: "12-15 por lado",
+                        guide: "Acostado boca arriba, rodillas flexionadas. Levanta una pierna extendida. Empuja con el talón de la pierna en el suelo para elevar la cadera. Aprieta el glúteo arriba. Baja con control.",
+                        restTime: 60
                     },
                     {
-                        name: 'Elevación de gemelos',
+                        id: 15,
+                        name: "Gemelos",
                         sets: 4,
-                        reps: '15',
-                        rest: 45,
-                        explanation: 'De pie, eleva los talones lo más alto posible, quedando en puntas. Contrae los gemelos arriba. Baja controladamente. Puedes hacerlo en escalón para mayor rango. Mantén el equilibrio, usa pared si es necesario.'
+                        reps: "15-20",
+                        guide: "De pie, sube sobre las puntas de los pies lo más alto posible. Mantén arriba 1 segundo. Baja con control. Para más dificultad, hazlo en un escalón o con mochila.",
+                        restTime: 60
                     },
                     {
-                        name: 'Elevaciones de piernas',
-                        sets: 4,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'Acostado boca arriba, manos bajo la zona lumbar. Eleva las piernas juntas y rectas hasta 90 grados. Baja controladamente sin que toquen el suelo. Mantén la zona lumbar pegada al suelo. Si es muy difícil, flexiona ligeramente las rodillas.'
-                    },
-                    {
-                        name: 'Plancha',
+                        id: 16,
+                        name: "Elevaciones de piernas",
                         sets: 3,
-                        reps: '1 min',
-                        rest: 60,
-                        explanation: 'Apóyate sobre los antebrazos y punteras de los pies. Cuerpo completamente recto desde cabeza hasta talones. Activa abdomen, glúteos y piernas. Mantén durante 60 segundos completos. Respira normalmente. Si es necesario, descansa 5 segundos y continúa.'
+                        reps: "12-15",
+                        guide: "Acostado boca arriba, manos bajo los glúteos. Piernas extendidas. Levanta las piernas hasta 90 grados. Baja con control sin tocar el suelo. Mantén la zona lumbar pegada al suelo.",
+                        restTime: 60
+                    },
+                    {
+                        id: 17,
+                        name: "Plancha RKC (máxima tensión)",
+                        sets: 3,
+                        reps: "40-60 seg",
+                        guide: "Plancha normal pero con tensión corporal total. Aprieta glúteos, cuádriceps, core y dorsales. Empuja los codos hacia los pies (sin moverlos). Máxima activación.",
+                        restTime: 60
                     }
                 ]
             },
             domingo: {
-                name: 'Domingo - UPPER',
-                type: 'Upper & Brazos',
+                name: "DOMINGO - UPPER + BRAZOS",
+                focus: "Torso + Brazos + Core",
                 exercises: [
                     {
-                        name: 'Dominadas',
-                        sets: 3,
-                        reps: 'Máximo',
-                        rest: 120,
-                        explanation: 'Agarra la barra con manos al ancho de hombros. Tira hasta que la barbilla pase la barra. Baja controladamente. Haz tantas repeticiones como puedas con buena técnica. Es normal que sean pocas al principio. Cada semana intenta hacer una más.'
-                    },
-                    {
-                        name: 'Flexiones',
-                        sets: 3,
-                        reps: 'Máximo',
-                        rest: 90,
-                        explanation: 'Haz tantas flexiones como puedas manteniendo la técnica perfecta. Cuando no puedas más con brazos extendidos, puedes terminar la serie con rodillas apoyadas. Cuenta tus repeticiones máximas para medir progreso.'
-                    },
-                    {
-                        name: 'Curl de bíceps',
+                        id: 18,
+                        name: "Flexiones diamante o cerradas",
                         sets: 4,
-                        reps: '12',
-                        rest: 60,
-                        explanation: 'Con peso en manos, codos fijos al cuerpo. Levanta flexionando el codo, contrae arriba. Baja controladamente. Enfócate en la conexión mente-músculo, siente cómo trabaja el bíceps en cada repetición. No balancees el cuerpo.'
+                        reps: "10-12",
+                        guide: "Manos muy juntas formando un diamante con los dedos índice y pulgar. Baja manteniendo los codos pegados al cuerpo. Esto trabaja tríceps y pecho interno intensamente.",
+                        restTime: 90
                     },
                     {
-                        name: 'Fondos',
+                        id: 19,
+                        name: "Fondos en silla",
                         sets: 3,
-                        reps: '10',
-                        rest: 90,
-                        explanation: 'En paralelas o sillas. Baja hasta 90 grados, sube empujando. Mantén el control en todo momento. Si es muy difícil, apoya ligeramente los pies en el suelo. Trabaja pecho y tríceps intensamente.'
+                        reps: "10-12",
+                        guide: "Igual que en el día push. Manos en el borde de la silla, codos hacia atrás. Baja y sube con control. Enfoque en tríceps.",
+                        restTime: 90
                     },
                     {
-                        name: 'Pike push-ups',
-                        sets: 3,
-                        reps: '8',
-                        rest: 75,
-                        explanation: 'Posición de V invertida. Baja la cabeza hacia el suelo entre las manos. Empuja hacia arriba. Excelente para hombros. Mantén las caderas altas y las piernas lo más rectas posible. Controla el descenso.'
-                    },
-                    {
-                        name: 'Abdominales',
+                        id: 20,
+                        name: "Curl bíceps mochila",
                         sets: 4,
-                        reps: '15',
-                        rest: 45,
-                        explanation: 'Acostado boca arriba, rodillas flexionadas. Eleva el torso contrayendo el abdomen, sube hasta que los omóplatos se despeguen del suelo. Baja controladamente. No tires del cuello. Mantén la vista al techo. Exhala al subir.'
+                        reps: "12-15",
+                        guide: "Con mochila cargada. Brazos extendidos. Flexiona llevando la mochila hacia los hombros. Control total en subida y bajada. Aprieta el bíceps arriba.",
+                        restTime: 60
+                    },
+                    {
+                        id: 21,
+                        name: "Pike push-ups",
+                        sets: 3,
+                        reps: "10",
+                        guide: "Posición de V invertida. Baja la cabeza hacia el suelo con control. Trabaja hombros. Mantén las piernas lo más rectas posible.",
+                        restTime: 90
+                    },
+                    {
+                        id: 22,
+                        name: "Bicycle crunches",
+                        sets: 4,
+                        reps: "15 por lado",
+                        guide: "Acostado boca arriba, manos en la nuca. Lleva el codo derecho a la rodilla izquierda mientras extiendes la pierna derecha. Alterna en movimiento de bicicleta. Controla el movimiento.",
+                        restTime: 60
+                    },
+                    {
+                        id: 23,
+                        name: "Plancha lateral",
+                        sets: 3,
+                        reps: "30-45 seg por lado",
+                        guide: "De lado, apoyado en un antebrazo. Cuerpo completamente recto. Aprieta el oblicuo del lado de apoyo. Mantén la cadera alta. No dejes caer el cuerpo.",
+                        restTime: 60
+                    },
+                    {
+                        id: 24,
+                        name: "Vacuum abdominal",
+                        sets: 4,
+                        reps: "10 seg",
+                        guide: "De pie o boca abajo. Expulsa todo el aire. Mete el abdomen hacia dentro todo lo posible, como si quisieras tocar la columna. Mantén 10 segundos. Respira y repite. Excelente para cintura.",
+                        restTime: 45
                     }
                 ]
             }
         };
 
-        // Explicaciones detalladas (mismo contenido que arriba, ya incluido en el objeto)
-
-        // ============================================
-        // STATE MANAGEMENT
-        // ============================================
+        // ==================== STATE ====================
+        let workouts = JSON.parse(localStorage.getItem('workouts')) || JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
         let currentDay = null;
-        let currentWorkout = null;
         let currentExerciseIndex = 0;
         let currentSet = 1;
-        let restTimer = null;
-        let completedExercises = [];
+        let restInterval = null;
+        let currentRestTime = 60;
 
-        // ============================================
-        // ELEMENTOS DEL DOM
-        // ============================================
-        const homeScreen = document.getElementById('homeScreen');
-        const workoutScreen = document.getElementById('workoutScreen');
-        const trainingScreen = document.getElementById('trainingScreen');
-        const backBtn = document.getElementById('backBtn');
-        const explanationModal = document.getElementById('explanationModal');
-        const closeModal = document.getElementById('closeModal');
-        const speakBtn = document.getElementById('speakBtn');
-
-        // ============================================
-        // INICIALIZACIÓN
-        // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            loadProgress();
+        // ==================== INIT ====================
+        function init() {
             updateStats();
+            updateDayCompletionStatus();
             setupEventListeners();
-            checkTodayWorkout();
-        });
+            
+            // Check if workouts need to be reset (new version)
+            if (!localStorage.getItem('workoutsVersion') || localStorage.getItem('workoutsVersion') !== '1.0') {
+                workouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+                localStorage.setItem('workouts', JSON.stringify(workouts));
+                localStorage.setItem('workoutsVersion', '1.0');
+            }
+        }
 
-        // ============================================
-        // EVENT LISTENERS
-        // ============================================
         function setupEventListeners() {
-            // Day cards
-            document.querySelectorAll('.day-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const day = card.dataset.day;
+            document.querySelectorAll('.day-button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const day = this.dataset.day;
                     startWorkout(day);
                 });
             });
-
-            // Back button
-            backBtn.addEventListener('click', goBack);
-
-            // Modal
-            closeModal.addEventListener('click', () => {
-                explanationModal.classList.remove('active');
-            });
-
-            explanationModal.addEventListener('click', (e) => {
-                if (e.target === explanationModal) {
-                    explanationModal.classList.remove('active');
-                }
-            });
-
-            // Speak button
-            speakBtn.addEventListener('click', speakExplanation);
-
-            // Training buttons
-            document.getElementById('completeSetBtn').addEventListener('click', completeSet);
-            document.getElementById('finishExerciseBtn').addEventListener('click', finishExercise);
-            document.getElementById('skipRestBtn').addEventListener('click', skipRest);
-            document.getElementById('addTimeBtn').addEventListener('click', addTime);
         }
 
-        // ============================================
-        // NAVEGACIÓN
-        // ============================================
+        // ==================== NAVIGATION ====================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function goHome() {
+            showScreen('homeScreen');
+            updateStats();
+            updateDayCompletionStatus();
+        }
+
+        // ==================== WORKOUT ====================
         function startWorkout(day) {
             currentDay = day;
-            currentWorkout = workouts[day];
             currentExerciseIndex = 0;
-            completedExercises = [];
-
-            homeScreen.classList.add('hidden');
-            workoutScreen.classList.remove('hidden');
-            backBtn.classList.remove('hidden');
-
-            renderWorkout();
-        }
-
-        function goBack() {
-            if (!trainingScreen.classList.contains('hidden')) {
-                // From training to workout
-                trainingScreen.classList.add('hidden');
-                workoutScreen.classList.remove('hidden');
-                stopRestTimer();
-            } else if (!workoutScreen.classList.contains('hidden')) {
-                // From workout to home
-                workoutScreen.classList.add('hidden');
-                homeScreen.classList.remove('hidden');
-                backBtn.classList.add('hidden');
-                currentDay = null;
-                currentWorkout = null;
-            }
-        }
-
-        // ============================================
-        // RENDER WORKOUT
-        // ============================================
-        function renderWorkout() {
-            const title = document.getElementById('workoutTitle');
-            const progress = document.getElementById('workoutProgress');
-            const progressBar = document.getElementById('progressBar');
-            const exerciseList = document.getElementById('exerciseList');
-
-            title.textContent = currentWorkout.name;
+            showScreen('workoutScreen');
             
-            const completed = completedExercises.length;
-            const total = currentWorkout.exercises.length;
-            progress.textContent = `${completed}/${total} completados`;
-            progressBar.style.width = `${(completed / total) * 100}%`;
+            const workout = workouts[day];
+            document.getElementById('workoutTitle').textContent = workout.name;
+            
+            renderExerciseList();
+            updateWorkoutProgress();
+        }
 
-            exerciseList.innerHTML = '';
-            currentWorkout.exercises.forEach((exercise, index) => {
-                const card = createExerciseCard(exercise, index);
-                exerciseList.appendChild(card);
+        function renderExerciseList() {
+            const workout = workouts[currentDay];
+            const list = document.getElementById('exerciseList');
+            list.innerHTML = '';
+
+            workout.exercises.forEach((ex, index) => {
+                const completed = ex.completed || false;
+                const isActive = index === currentExerciseIndex && !completed;
+
+                const card = document.createElement('div');
+                card.className = `exercise-card ${isActive ? 'active' : ''} ${completed ? 'completed' : ''}`;
+                card.innerHTML = `
+                    <div class="exercise-header">
+                        <div class="exercise-name">${ex.name}</div>
+                        <div class="exercise-status">${completed ? '✅' : isActive ? '▶️' : '⚪'}</div>
+                    </div>
+                    <div class="exercise-details">
+                        <span>${ex.sets} series</span>
+                        <span>•</span>
+                        <span>${ex.reps} reps</span>
+                    </div>
+                    <div class="exercise-actions">
+                        ${!completed ? `<button class="btn btn-primary btn-small" onclick="startExercise(${index})">Empezar</button>` : ''}
+                        <button class="btn btn-secondary btn-small" onclick="toggleEdit(${index})">✏️ Editar</button>
+                        <button class="btn btn-secondary btn-small" onclick="deleteExercise(${index})">🗑️</button>
+                    </div>
+                    <div class="edit-controls" id="edit-${index}">
+                        <div class="edit-row">
+                            <input type="number" class="edit-input" value="${ex.sets}" id="sets-${index}" placeholder="Series">
+                            <input type="text" class="edit-input" value="${ex.reps}" id="reps-${index}" placeholder="Reps">
+                        </div>
+                        <button class="btn btn-primary btn-small" onclick="saveEdit(${index})" style="width: 100%;">Guardar</button>
+                    </div>
+                `;
+                list.appendChild(card);
             });
         }
 
-        function createExerciseCard(exercise, index) {
-            const isCompleted = completedExercises.includes(index);
-            const div = document.createElement('div');
-            div.className = `exercise-card ${isCompleted ? 'completed' : ''}`;
-            
-            div.innerHTML = `
-                <div class="exercise-header">
-                    <div>
-                        <div class="exercise-name">${exercise.name}</div>
-                        <div class="exercise-details">${exercise.sets} series × ${exercise.reps} reps</div>
-                    </div>
-                    ${isCompleted ? '<div style="font-size: 1.5rem;">✓</div>' : ''}
-                </div>
-                <div class="exercise-buttons">
-                    <button class="btn btn-secondary explain-btn" data-index="${index}">
-                        📖 Explicación
-                    </button>
-                    ${!isCompleted ? `<button class="btn btn-primary start-btn" data-index="${index}">▶ Iniciar</button>` : ''}
-                </div>
-            `;
+        function startExercise(index) {
+            currentExerciseIndex = index;
+            currentSet = 1;
+            showScreen('trainingScreen');
+            renderTrainingMode();
+        }
 
-            div.querySelector('.explain-btn').addEventListener('click', () => showExplanation(index));
+        function renderTrainingMode() {
+            const exercise = workouts[currentDay].exercises[currentExerciseIndex];
             
-            if (!isCompleted) {
-                div.querySelector('.start-btn').addEventListener('click', () => startExercise(index));
+            document.getElementById('trainingExerciseName').textContent = exercise.name;
+            document.getElementById('trainingSetInfo').textContent = `Serie ${currentSet}/${exercise.sets}`;
+            document.getElementById('trainingRepsInfo').textContent = `${exercise.reps} repeticiones`;
+            
+            // Show guide
+            const guideSection = document.getElementById('trainingGuide');
+            if (exercise.guide) {
+                guideSection.style.display = 'block';
+                document.getElementById('guideText').textContent = exercise.guide;
+            } else {
+                guideSection.style.display = 'none';
             }
-
-            return div;
+            
+            // Hide rest timer
+            document.getElementById('restTimer').style.display = 'none';
+            document.getElementById('trainingActions').style.display = 'block';
         }
 
-        // ============================================
-        // EXERCISE EXPLANATION
-        // ============================================
-        function showExplanation(index) {
-            const exercise = currentWorkout.exercises[index];
-            document.getElementById('modalTitle').textContent = exercise.name;
-            document.getElementById('modalBody').textContent = exercise.explanation;
-            explanationModal.classList.add('active');
-            explanationModal.dataset.currentExercise = index;
+        function completeSet() {
+            const exercise = workouts[currentDay].exercises[currentExerciseIndex];
+            
+            if (currentSet < exercise.sets) {
+                // Start rest
+                currentSet++;
+                startRest(exercise.restTime || 60);
+            } else {
+                // Exercise completed
+                exercise.completed = true;
+                showToast('✅ ¡Ejercicio completado!');
+                
+                // Move to next exercise
+                const nextIncomplete = workouts[currentDay].exercises.findIndex((ex, idx) => idx > currentExerciseIndex && !ex.completed);
+                
+                if (nextIncomplete !== -1) {
+                    currentExerciseIndex = nextIncomplete;
+                    currentSet = 1;
+                    renderTrainingMode();
+                } else {
+                    exitTraining();
+                }
+            }
         }
 
-        function speakExplanation() {
-            const index = explanationModal.dataset.currentExercise;
-            const exercise = currentWorkout.exercises[index];
+        function startRest(seconds) {
+            currentRestTime = seconds;
+            document.getElementById('trainingActions').style.display = 'none';
+            document.getElementById('restTimer').style.display = 'block';
+            updateTimerDisplay();
+            
+            restInterval = setInterval(() => {
+                currentRestTime--;
+                updateTimerDisplay();
+                
+                if (currentRestTime <= 0) {
+                    clearInterval(restInterval);
+                    playSound();
+                    renderTrainingMode();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerDisplay').textContent = currentRestTime;
+        }
+
+        function adjustTimer(seconds) {
+            currentRestTime = Math.max(5, currentRestTime + seconds);
+            updateTimerDisplay();
+        }
+
+        function skipRest() {
+            clearInterval(restInterval);
+            renderTrainingMode();
+        }
+
+        function exitTraining() {
+            clearInterval(restInterval);
+            showScreen('workoutScreen');
+            renderExerciseList();
+            updateWorkoutProgress();
+        }
+
+        function completeWorkout() {
+            const workout = workouts[currentDay];
+            const allCompleted = workout.exercises.every(ex => ex.completed);
+            
+            if (!allCompleted) {
+                if (!confirm('¿Seguro que quieres finalizar? Aún hay ejercicios pendientes.')) {
+                    return;
+                }
+            }
+            
+            // Save workout to history
+            const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+            history.push({
+                day: currentDay,
+                date: new Date().toISOString(),
+                exercises: workout.exercises.filter(ex => ex.completed).length,
+                total: workout.exercises.length
+            });
+            localStorage.setItem('workoutHistory', JSON.stringify(history));
+            
+            // Reset exercise completion
+            workout.exercises.forEach(ex => ex.completed = false);
+            localStorage.setItem('workouts', JSON.stringify(workouts));
+            
+            showToast('🎉 ¡Entrenamiento completado!');
+            goHome();
+        }
+
+        // ==================== EDIT ====================
+        function toggleEdit(index) {
+            const editDiv = document.getElementById(`edit-${index}`);
+            editDiv.classList.toggle('active');
+        }
+
+        function saveEdit(index) {
+            const sets = parseInt(document.getElementById(`sets-${index}`).value);
+            const reps = document.getElementById(`reps-${index}`).value;
+            
+            workouts[currentDay].exercises[index].sets = sets;
+            workouts[currentDay].exercises[index].reps = reps;
+            
+            localStorage.setItem('workouts', JSON.stringify(workouts));
+            showToast('💾 Cambios guardados');
+            renderExerciseList();
+        }
+
+        function deleteExercise(index) {
+            if (confirm('¿Eliminar este ejercicio?')) {
+                workouts[currentDay].exercises.splice(index, 1);
+                localStorage.setItem('workouts', JSON.stringify(workouts));
+                showToast('🗑️ Ejercicio eliminado');
+                renderExerciseList();
+            }
+        }
+
+        // ==================== ADD EXERCISE ====================
+        function showAddExercise() {
+            document.getElementById('addExerciseModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('addExerciseModal').classList.remove('active');
+        }
+
+        function addCustomExercise() {
+            const day = document.getElementById('newExerciseDay').value;
+            const name = document.getElementById('newExerciseName').value.trim();
+            const sets = parseInt(document.getElementById('newExerciseSets').value);
+            const reps = document.getElementById('newExerciseReps').value.trim();
+            const guide = document.getElementById('newExerciseGuide').value.trim();
+            
+            if (!name || !reps) {
+                alert('Por favor completa nombre y repeticiones');
+                return;
+            }
+            
+            const newExercise = {
+                id: Date.now(),
+                name,
+                sets,
+                reps,
+                guide,
+                restTime: 60
+            };
+            
+            workouts[day].exercises.push(newExercise);
+            localStorage.setItem('workouts', JSON.stringify(workouts));
+            
+            showToast('✅ Ejercicio agregado');
+            closeModal();
+            
+            // Clear form
+            document.getElementById('newExerciseName').value = '';
+            document.getElementById('newExerciseSets').value = '3';
+            document.getElementById('newExerciseReps').value = '';
+            document.getElementById('newExerciseGuide').value = '';
+        }
+
+        // ==================== STATS ====================
+        function updateStats() {
+            const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+            const now = new Date();
+            
+            // Weekly
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weeklyCount = history.filter(w => new Date(w.date) >= weekAgo).length;
+            document.getElementById('weeklyWorkouts').textContent = weeklyCount;
+            
+            // Monthly
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const monthlyCount = history.filter(w => new Date(w.date) >= monthAgo).length;
+            document.getElementById('monthlyWorkouts').textContent = monthlyCount;
+            
+            // Total
+            document.getElementById('totalWorkouts').textContent = history.length;
+            
+            // Streak
+            const streak = calculateStreak(history);
+            document.getElementById('streakCount').textContent = streak;
+        }
+
+        function calculateStreak(history) {
+            if (history.length === 0) return 0;
+            
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const thisWeek = history.filter(w => new Date(w.date) >= weekAgo);
+            
+            const uniqueDays = new Set(thisWeek.map(w => w.day));
+            return uniqueDays.size;
+        }
+
+        function updateDayCompletionStatus() {
+            const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+            const today = new Date().toDateString();
+            
+            document.querySelectorAll('.day-button').forEach(btn => {
+                const day = btn.dataset.day;
+                const completedToday = history.some(w => {
+                    const workoutDate = new Date(w.date).toDateString();
+                    return workoutDate === today && w.day === day;
+                });
+                
+                if (completedToday) {
+                    btn.classList.add('completed');
+                } else {
+                    btn.classList.remove('completed');
+                }
+            });
+        }
+
+        function updateWorkoutProgress() {
+            const workout = workouts[currentDay];
+            const completed = workout.exercises.filter(ex => ex.completed).length;
+            const total = workout.exercises.length;
+            const percentage = (completed / total) * 100;
+            
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = `${completed}/${total} ejercicios completados`;
+        }
+
+        // ==================== HISTORY ====================
+        function showHistory() {
+            showScreen('historyScreen');
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            
+            if (history.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No hay entrenamientos registrados aún. ¡Empieza hoy!</p>';
+                return;
+            }
+            
+            const sorted = history.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sorted.forEach(w => {
+                const date = new Date(w.date);
+                const dayName = workouts[w.day].name;
+                
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-date">${date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    <div class="history-day">${dayName}</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 5px;">
+                        ${w.exercises}/${w.total} ejercicios completados
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // ==================== SPEECH ====================
+        function speakGuide() {
+            const text = document.getElementById('guideText').textContent;
             
             if ('speechSynthesis' in window) {
-                // Cancelar cualquier síntesis previa
                 window.speechSynthesis.cancel();
-                
-                const utterance = new SpeechSynthesisUtterance(exercise.explanation);
+                const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'es-ES';
                 utterance.rate = 0.9;
-                utterance.pitch = 1;
-                
                 window.speechSynthesis.speak(utterance);
-                
-                speakBtn.textContent = '🔊 Reproduciendo...';
-                utterance.onend = () => {
-                    speakBtn.textContent = '🔊 Reproducir explicación';
-                };
             } else {
                 alert('Tu navegador no soporta síntesis de voz');
             }
         }
 
-        // ============================================
-        // TRAINING MODE
-        // ============================================
-        function startExercise(index) {
-            currentExerciseIndex = index;
-            currentSet = 1;
+        // ==================== UTILS ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('active');
             
-            const exercise = currentWorkout.exercises[index];
-            
-            workoutScreen.classList.add('hidden');
-            trainingScreen.classList.remove('hidden');
-            
-            document.getElementById('trainingExerciseName').textContent = exercise.name;
-            document.getElementById('trainingExerciseDetails').textContent = 
-                `${exercise.sets} series × ${exercise.reps} reps`;
-            
-            updateTrainingDisplay();
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
         }
 
-        function updateTrainingDisplay() {
-            const exercise = currentWorkout.exercises[currentExerciseIndex];
-            
-            document.getElementById('currentSetDisplay').textContent = 
-                `${currentSet}/${exercise.sets}`;
-            document.getElementById('repsDisplay').textContent = 
-                `${exercise.reps} repeticiones`;
-            
-            // Ocultar timer si está visible
-            document.getElementById('restTimerContainer').classList.add('hidden');
-        }
-
-        function completeSet() {
-            const exercise = currentWorkout.exercises[currentExerciseIndex];
-            
-            if (currentSet < exercise.sets) {
-                // Iniciar descanso
-                currentSet++;
-                startRestTimer(exercise.rest);
-            } else {
-                // Ejercicio completado
-                finishExercise();
-            }
-        }
-
-        function finishExercise() {
-            stopRestTimer();
-            
-            if (!completedExercises.includes(currentExerciseIndex)) {
-                completedExercises.push(currentExerciseIndex);
-            }
-            
-            // Guardar progreso
-            saveProgress();
-            
-            // Verificar si completó todo
-            if (completedExercises.length === currentWorkout.exercises.length) {
-                // ¡Entrenamiento completado!
-                alert('🎉 ¡Entrenamiento completado! Excelente trabajo.');
-                markDayCompleted();
-            }
-            
-            // Volver a la lista de ejercicios
-            trainingScreen.classList.add('hidden');
-            workoutScreen.classList.remove('hidden');
-            renderWorkout();
-        }
-
-        // ============================================
-        // REST TIMER
-        // ============================================
-        function startRestTimer(seconds) {
-            const restContainer = document.getElementById('restTimerContainer');
-            const timerDisplay = document.getElementById('timerDisplay');
-            const completeBtn = document.getElementById('completeSetBtn');
-            
-            restContainer.classList.remove('hidden');
-            completeBtn.disabled = true;
-            completeBtn.style.opacity = '0.5';
-            
-            let timeLeft = seconds;
-            timerDisplay.textContent = timeLeft;
-            
-            restTimer = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = timeLeft;
+        function playSound() {
+            // Simple beep using Web Audio API
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
                 
-                if (timeLeft <= 0) {
-                    stopRestTimer();
-                    playBeep();
-                    vibrate();
-                    updateTrainingDisplay();
-                    completeBtn.disabled = false;
-                    completeBtn.style.opacity = '1';
-                }
-            }, 1000);
-        }
-
-        function stopRestTimer() {
-            if (restTimer) {
-                clearInterval(restTimer);
-                restTimer = null;
-            }
-            document.getElementById('restTimerContainer').classList.add('hidden');
-            document.getElementById('completeSetBtn').disabled = false;
-            document.getElementById('completeSetBtn').style.opacity = '1';
-        }
-
-        function skipRest() {
-            stopRestTimer();
-            updateTrainingDisplay();
-        }
-
-        function addTime() {
-            const timerDisplay = document.getElementById('timerDisplay');
-            let currentTime = parseInt(timerDisplay.textContent);
-            currentTime += 15;
-            timerDisplay.textContent = currentTime;
-        }
-
-        // ============================================
-        // AUDIO & VIBRATION
-        // ============================================
-        function playBeep() {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        }
-
-        function vibrate() {
-            if ('vibrate' in navigator) {
-                navigator.vibrate([200, 100, 200]);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                // Silent fail if audio not supported
             }
         }
 
-        // ============================================
-        // PROGRESS & STORAGE
-        // ============================================
-        function saveProgress() {
-            const data = {
-                currentDay,
-                completedExercises,
-                date: new Date().toISOString()
-            };
-            
-            localStorage.setItem('currentProgress', JSON.stringify(data));
-            
-            // Guardar en historial
-            const history = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-            history.push({
-                day: currentDay,
-                completed: completedExercises.length,
-                total: currentWorkout.exercises.length,
-                date: new Date().toISOString()
-            });
-            localStorage.setItem('workoutHistory', JSON.stringify(history));
-            
-            updateStats();
-        }
-
-        function loadProgress() {
-            const saved = localStorage.getItem('currentProgress');
-            if (saved) {
-                const data = JSON.parse(saved);
-                // Verificar si es del mismo día
-                const savedDate = new Date(data.date);
-                const today = new Date();
-                if (savedDate.toDateString() === today.toDateString()) {
-                    // Restaurar progreso si es el mismo día
-                    currentDay = data.currentDay;
-                    completedExercises = data.completedExercises || [];
-                }
-            }
-        }
-
-        function markDayCompleted() {
-            const completedDays = JSON.parse(localStorage.getItem('completedDays') || '{}');
-            const today = new Date().toDateString();
-            
-            if (!completedDays[today]) {
-                completedDays[today] = [];
-            }
-            
-            if (!completedDays[today].includes(currentDay)) {
-                completedDays[today].push(currentDay);
-            }
-            
-            localStorage.setItem('completedDays', JSON.stringify(completedDays));
-            updateDayCards();
-        }
-
-        function checkTodayWorkout() {
-            const completedDays = JSON.parse(localStorage.getItem('completedDays') || '{}');
-            const today = new Date().toDateString();
-            
-            if (completedDays[today]) {
-                completedDays[today].forEach(day => {
-                    const card = document.querySelector(`.day-card[data-day="${day}"]`);
-                    if (card) {
-                        card.classList.add('completed');
-                        const badge = document.createElement('div');
-                        badge.className = 'completed-badge';
-                        badge.textContent = '✓ Hecho hoy';
-                        card.appendChild(badge);
-                    }
-                });
-            }
-        }
-
-        function updateDayCards() {
-            checkTodayWorkout();
-        }
-
-        function updateStats() {
-            const history = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-            
-            // Total workouts
-            const totalWorkouts = history.filter(w => w.completed === w.total).length;
-            document.getElementById('totalWorkouts').textContent = totalWorkouts;
-            
-            // This week
-            const now = new Date();
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const thisWeek = history.filter(w => {
-                const date = new Date(w.date);
-                return date >= weekAgo && w.completed === w.total;
-            }).length;
-            document.getElementById('weekWorkouts').textContent = thisWeek;
-        }
+        // ==================== INITIALIZE ====================
+        init();
     </script>
 </body>
 </html>
