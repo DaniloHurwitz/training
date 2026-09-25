@@ -104,12 +104,16 @@ function eventStyleVars(o) {
 
 /* ---------- Distribución de eventos solapados ---------- */
 
-function layoutDay(list, withTravel) {
+function layoutDay(items, withTravel) {
   // Un evento muy corto se dibuja con alto mínimo: se usa ese alto para no taparse con el siguiente
   const minMin = (17 / DB.settings.hourHeight) * 60;
-  const items = list.map((o) => {
-    const [s, e] = withTravel ? occBusyRange(o) : [o.start, o.end];
-    return { o, s, e: Math.max(e, o.start + minMin) };
+  const list = items.map((it) => {
+    let s = it.s, e = it.e;
+    if (withTravel && it.own && it.o.calendar === 'faculty') {
+      if (it.first) s -= Number(it.o.travelBefore) || 0;
+      if (it.last) e += Number(it.o.travelAfter) || 0;
+    }
+    return { key: it.key, s, e: Math.max(e, it.s + minMin) };
   }).sort((a, b) => a.s - b.s || b.e - a.e);
   const res = new Map();
   let cluster = [], clusterEnd = -Infinity;
@@ -128,10 +132,10 @@ function layoutDay(list, withTravel) {
         if (cluster.some((x) => x.col === k && x.s < it.e && it.s < x.e)) break;
         span++;
       }
-      res.set(it.o.key, { col: it.col, span, n });
+      res.set(it.key, { col: it.col, span, n });
     }
   };
-  for (const it of items) {
+  for (const it of list) {
     if (it.s >= clusterEnd) { place(); cluster = []; clusterEnd = it.e; } else clusterEnd = Math.max(clusterEnd, it.e);
     cluster.push(it);
   }
@@ -188,18 +192,63 @@ function updateCalToolbar() {
   document.body.classList.toggle('panel-closed', !UI.panelOpen);
 }
 
+const GAP_PX = 18; // banda de las horas ocultas (p. ej. 02:00–08:00)
+
 function gridMetrics() {
   const s = DB.settings;
-  return { H: s.hourHeight, lo: s.dayStart * 60, hi: s.dayEnd * 60, snap: s.slotMinutes || 15 };
+  const H = s.hourHeight;
+  const segs = daySegments();
+  const totalH = segs.reduce((t, [a, b]) => t + ((b - a) / 60) * H, 0) + (segs.length - 1) * GAP_PX;
+  return { H, segs, totalH, snap: s.slotMinutes || 15 };
+}
+
+/* Minuto del día → posición vertical (px) dentro de la columna */
+function yOfMin(m, g = gridMetrics()) {
+  let y = 0;
+  for (const [a, b] of g.segs) {
+    if (m <= a) return y;
+    if (m <= b) return y + ((m - a) / 60) * g.H;
+    y += ((b - a) / 60) * g.H + GAP_PX;
+  }
+  return g.totalH;
+}
+
+/* Posición vertical → minuto del día (la banda oculta se ajusta al borde más cercano) */
+function minAtOffset(y, g = gridMetrics()) {
+  let top = 0;
+  for (let i = 0; i < g.segs.length; i++) {
+    const [a, b] = g.segs[i];
+    const h = ((b - a) / 60) * g.H;
+    if (y < top + h || i === g.segs.length - 1) return clamp(a + ((y - top) / g.H) * 60, a, b);
+    top += h;
+    if (y < top + GAP_PX) return y - top < GAP_PX / 2 ? b : g.segs[i + 1][0];
+    top += GAP_PX;
+  }
+  return g.segs[g.segs.length - 1][1];
+}
+
+function occEnded(o, nowI) { return diffDays(nowI.date, o.date) * MIN_PER_DAY + o.end <= nowI.min; }
+
+/* Partes visibles de una ocurrencia en la columna de `colDate` (lo que pasa de medianoche va al día siguiente) */
+function piecesOf(o, colDate, segs) {
+  const off = diffDays(o.date, colDate) * MIN_PER_DAY;
+  const s = o.start - off, e = o.end - off;
+  const out = [];
+  for (const [a, b] of segs) {
+    const ps = Math.max(s, a), pe = Math.min(e, b);
+    if (pe > ps) out.push({ s: ps, e: pe, off, first: ps === s, last: pe === e });
+  }
+  return out;
 }
 
 function renderGrid() {
   const s = DB.settings;
-  const { H, lo, hi } = gridMetrics();
+  const g = gridMetrics();
+  const { H, segs, totalH } = g;
   const days = visibleDays();
-  const totalH = ((hi - lo) / 60) * H;
   const from = days[0], to = days[days.length - 1];
-  const all = getOccurrences(from, to);
+  const all = getOccurrences(addDays(from, -1), to); // incluye lo que sigue de la noche anterior
+  const inRange = all.filter((o) => o.date >= from);
   const visible = all.filter(occPassesFilters);
   const q = UI.search.trim();
   const nowI = nowInfo();
@@ -214,11 +263,11 @@ function renderGrid() {
   let head = `<div class="cal-corner"><span>${esc(UI.calFilter === 'work' ? 'Trabajo' : UI.calFilter === 'faculty' ? 'Facultad' : '')}</span></div>`;
   days.forEach((d, i) => {
     const wd = weekdayOf(d);
-    const dayAll = all.filter((o) => o.date === d);
+    const dayAll = inRange.filter((o) => o.date === d);
     const work = dayAll.filter((o) => o.calendar === 'work').reduce((t, o) => t + occDuration(o), 0);
     const fac = dayAll.filter((o) => o.calendar === 'faculty').reduce((t, o) => t + occDuration(o), 0);
     const nConf = alerts.filter((a) => a.type === 'overlap' && a.date === d).length;
-    const outside = dayAll.filter((o) => occPassesFilters(o) && (o.end <= lo || o.start >= hi)).length;
+    const outside = dayAll.filter((o) => occPassesFilters(o) && !piecesOf(o, d, segs).length && !(o.end > MIN_PER_DAY && piecesOf(o, addDays(d, 1), segs).length)).length;
     const loadTitle = `Trabajo ${fmtDur(work)} · Facultad ${fmtDur(fac)}`;
     head += `<div class="cal-dayhead${d === nowI.date ? ' is-today' : ''}${d < nowI.date ? ' is-past' : ''}" data-date="${d}" style="grid-column:${i + 2}">
       <button class="dh-btn" data-action="open-day" data-date="${d}" title="Ver ${esc(fmtDateLong(d))}">
@@ -234,29 +283,49 @@ function renderGrid() {
   });
 
   let gutter = '<div class="cal-gutter">';
-  for (let h = s.dayStart; h <= s.dayEnd; h++) {
-    const top = ((h * 60 - lo) / 60) * H;
-    const cls = h === s.dayStart ? ' is-first' : h === s.dayEnd ? ' is-last' : '';
-    const night = h >= 24;
-    gutter += `<div class="gl${cls}${night ? ' is-night' : ''}${h === 24 ? ' is-midnight' : ''}" style="top:${top}px"><span>${fmtTime(h * 60)}</span>${h === 24 ? '<em>+1</em>' : ''}</div>`;
-  }
+  segs.forEach(([a, b], si) => {
+    const early = segs.length > 1 && si === 0;
+    for (let h = a / 60; h <= b / 60; h++) {
+      const cls = [
+        h * 60 === a ? (si === 0 ? 'is-first' : 'is-seg-start') : '',
+        h * 60 === b ? (si === segs.length - 1 ? 'is-last' : 'is-seg-end') : '',
+        early ? 'is-night' : '',
+      ].filter(Boolean).join(' ');
+      gutter += `<div class="gl ${cls}" style="top:${yOfMin(h * 60, g)}px"><span>${h === 24 ? '24:00' : fmtTime(h * 60)}</span></div>`;
+    }
+    if (si < segs.length - 1) {
+      gutter += `<div class="gl-gap" style="top:${yOfMin(b, g)}px;height:${GAP_PX}px" title="Horas ocultas: ${fmtTime(b)}–${fmtTime(segs[si + 1][0])}">${fmtTime(b).slice(0, 2)}–${fmtTime(segs[si + 1][0]).slice(0, 2)} h</div>`;
+    }
+  });
   gutter += '<div class="now-label" hidden></div></div>';
+
+  let bg = '';
+  segs.forEach(([a, b], si) => {
+    bg += `<div class="seg-bg${segs.length > 1 && si === 0 ? ' is-early' : ''}" style="top:${yOfMin(a, g)}px;height:${((b - a) / 60) * H}px"></div>`;
+    if (si < segs.length - 1) bg += `<div class="seg-gap" style="top:${yOfMin(b, g)}px;height:${GAP_PX}px"></div>`;
+  });
 
   let cols = '';
   days.forEach((d, i) => {
-    const list = visible.filter((o) => o.date === d);
-    const layout = layoutDay(list, s.showTravel);
-    const ov = overlapSegments(list);
-    let inner = '';
-    if (hi > MIN_PER_DAY) {
-      inner += `<div class="night-zone" style="top:${((MIN_PER_DAY - lo) / 60) * H}px;height:${((hi - MIN_PER_DAY) / 60) * H}px"></div>`;
+    const prev = addDays(d, -1);
+    const items = [];
+    for (const o of visible) {
+      if (o.date !== d && !(o.date === prev && o.end > MIN_PER_DAY)) continue;
+      const ownVisible = o.date !== d && piecesOf(o, o.date, segs).length > 0;
+      piecesOf(o, d, segs).forEach((p, pi) => items.push({
+        o, key: `${o.key}#${p.off ? 'n' : ''}${pi}`, s: p.s, e: p.e, off: p.off,
+        first: p.first, last: p.last, own: !p.off, cont: p.off ? ownVisible : pi > 0,
+      }));
     }
-    for (const o of list) {
-      const lay = layout.get(o.key) || { col: 0, span: 1, n: 1 };
-      inner += eventBlockHtml(o, lay, ov.get(o.key), {
+    const layout = layoutDay(items, s.showTravel);
+    const ov = overlapSegments(items.map((it) => ({ key: it.key, start: it.s, end: it.e, title: it.o.title })));
+    let inner = bg;
+    for (const it of items) {
+      const o = it.o;
+      inner += eventBlockHtml(it, layout.get(it.key) || { col: 0, span: 1, n: 1 }, ov.get(it.key), g, {
         dim: q && !occMatchesSearch(o, q),
         match: q && occMatchesSearch(o, q),
-        past: o.date < nowI.date || (o.date === nowI.date && o.end <= nowI.min),
+        past: occEnded(o, nowI),
         conflict: conflictKeys.has(o.key),
       });
     }
@@ -270,19 +339,18 @@ function renderGrid() {
   if (!didInitialScroll) { didInitialScroll = true; requestAnimationFrame(() => scrollToFocus(false)); }
 }
 
-function eventBlockHtml(o, lay, ov, ctx) {
+function eventBlockHtml(it, lay, ov, g, ctx) {
   const s = DB.settings;
-  const { H, lo, hi } = gridMetrics();
-  const vs = Math.max(o.start, lo), ve = Math.min(o.end, hi);
-  if (ve <= vs) return '';
-  const top = ((vs - lo) / 60) * H;
-  const height = Math.max(((ve - vs) / 60) * H, 16);
+  const o = it.o;
+  const { H } = g;
+  const top = yOfMin(it.s, g);
+  const height = Math.max(((it.e - it.s) / 60) * H, 16);
   const left = (lay.col / lay.n) * 100, width = (lay.span / lay.n) * 100;
   const pos = `top:${top}px;height:${height - 1}px;left:calc(${left}% + 1px);width:calc(${width}% - 3px)`;
   const { v, style } = eventStyleVars(o);
   const size = height < 27 ? 'xs' : height < 46 ? 'sm' : height < 74 ? 'md' : 'lg';
   const inc = occIncome(o);
-  const showInc = s.showIncomeInEvents && inc;
+  const showInc = s.showIncomeInEvents && inc && !it.cont;
   const time = `${fmtTime(o.start)}–${fmtTime(o.end)}`;
   const kind = o.calendar === 'work' ? icon(o.phone ? 'phone' : 'laptop', 'ev-kind') : icon('cap', 'ev-kind');
   const tags = [
@@ -293,55 +361,56 @@ function eventBlockHtml(o, lay, ov, ctx) {
     'ev', v.cls, 'sz-' + size,
     o.confirmation === 'pending' && o.calendar === 'work' ? 'is-pending' : '',
     ctx.past ? 'is-past' : '', ctx.dim ? 'is-dim' : '', ctx.match ? 'is-match' : '',
-    ov ? 'is-overlap' : '', o.start < lo ? 'clip-top' : '', o.end > hi ? 'clip-bot' : '',
+    ov ? 'is-overlap' : '', it.first ? '' : 'clip-top', it.last ? '' : 'clip-bot',
   ].filter(Boolean).join(' ');
 
   let hatch = '';
   if (ov) {
     for (const seg of ov.segs) {
-      const a = Math.max(seg.start, vs), b = Math.min(seg.end, ve);
+      const a = Math.max(seg.start, it.s), b = Math.min(seg.end, it.e);
       if (b <= a) continue;
-      hatch += `<div class="ev-hatch d${Math.min(seg.depth, 3)}" style="top:${((a - vs) / 60) * H}px;height:${((b - a) / 60) * H}px"></div>`;
+      hatch += `<div class="ev-hatch d${Math.min(seg.depth, 3)}" style="top:${((a - it.s) / 60) * H}px;height:${((b - a) / 60) * H}px"></div>`;
     }
   }
 
   let travel = '';
-  if (s.showTravel && o.calendar === 'faculty') {
+  if (s.showTravel && o.calendar === 'faculty' && it.own) {
     const tb = Number(o.travelBefore) || 0, ta = Number(o.travelAfter) || 0;
-    const tz = (a, b, label) => {
-      const za = Math.max(a, lo), zb = Math.min(b, hi);
+    const tz = (a, b, label) => g.segs.map(([sa, sb]) => {
+      const za = Math.max(a, sa), zb = Math.min(b, sb);
       if (zb <= za) return '';
       const zh = ((zb - za) / 60) * H;
-      return `<div class="ev-travel" style="top:${((za - lo) / 60) * H}px;height:${zh}px;left:calc(${left}% + 1px);width:calc(${width}% - 3px);--ev-accent:${v.accent};--tz-bg:${rgba(occColor(o), 0.09)}" title="${esc(label)}">${zh >= 15 ? `<span>${esc(label)}</span>` : ''}</div>`;
-    };
-    if (tb) travel += tz(o.start - tb, o.start, `Traslado ${tb} min`);
-    if (ta) travel += tz(o.end, o.end + ta, `Traslado ${ta} min`);
+      return `<div class="ev-travel" style="top:${yOfMin(za, g)}px;height:${zh}px;left:calc(${left}% + 1px);width:calc(${width}% - 3px);--ev-accent:${v.accent};--tz-bg:${rgba(occColor(o), 0.09)}" title="${esc(label)}">${zh >= 15 ? `<span>${esc(label)}</span>` : ''}</div>`;
+    }).join('');
+    if (tb && it.first) travel += tz(o.start - tb, o.start, `Traslado ${tb} min`);
+    if (ta && it.last) travel += tz(o.end, o.end + ta, `Traslado ${ta} min`);
   }
 
   const sub = occSubtitle(o);
-  const overlapNames = ov ? ov.others.map((x) => x.title || 'Sin título').join(', ') : '';
+  const overlapNames = ov ? [...new Set(ov.others.map((x) => x.title || 'Sin título'))].join(', ') : '';
   const tip = [
-    o.title || 'Sin título', time + ` (${fmtDur(occDuration(o))})`, sub,
+    o.title || 'Sin título', time + ` (${fmtDur(occDuration(o))})` + (o.end > MIN_PER_DAY ? ' · termina al día siguiente' : ''), sub,
     inc ? `Ingreso estimado: ${fmtMoney(inc.amount, inc.currency)}` : '',
     ov ? `⚠ Solapamiento con: ${overlapNames}` : '',
   ].filter(Boolean).join('\n');
+  const title = (it.cont ? '↳ ' : '') + (o.title || 'Sin título');
 
   let body;
   if (size === 'xs') {
-    body = `<div class="ev-line"><span class="ev-title">${esc(o.title || 'Sin título')}</span><span class="ev-time">${fmtTime(o.start)}</span>${showInc && width > 30 ? `<span class="ev-inc">${esc(fmtMoney(inc.amount, inc.currency))}</span>` : ''}</div>`;
+    body = `<div class="ev-line"><span class="ev-title">${esc(title)}</span><span class="ev-time">${fmtTime(it.cont ? it.s : o.start)}</span>${showInc && width > 30 ? `<span class="ev-inc">${esc(fmtMoney(inc.amount, inc.currency))}</span>` : ''}</div>`;
   } else {
-    body = `<div class="ev-top"><span class="ev-title">${esc(o.title || 'Sin título')}</span>${kind}</div>
+    body = `<div class="ev-top"><span class="ev-title">${esc(title)}</span>${kind}</div>
       <div class="ev-time">${time}${showInc ? ` · <span class="ev-inc">${esc(fmtMoney(inc.amount, inc.currency))}</span>` : ''}</div>
       ${size !== 'sm' && sub ? `<div class="ev-sub">${esc(sub)}</div>` : ''}
       ${size === 'lg' && o.confirmation === 'pending' && o.calendar === 'work' ? '<div class="ev-flag">Por confirmar</div>' : ''}
       ${tags ? `<div class="ev-tags">${tags}</div>` : ''}`;
   }
 
-  return travel + `<div class="${cls}" style="${pos};${style}" data-key="${esc(o.key)}" tabindex="0" role="button" title="${esc(tip)}">
+  return travel + `<div class="${cls}" style="${pos};${style}" data-key="${esc(o.key)}" data-off="${it.off}" tabindex="0" role="button" title="${esc(tip)}">
     ${hatch}
     ${ov ? `<span class="ev-ovl">${icon('alert')}<b>Solapamiento</b></span>` : ctx.conflict ? `<span class="ev-ovl" title="Se superpone con un evento oculto por los filtros">${icon('alert')}<b>Solapamiento</b></span>` : ''}
     <div class="ev-body">${body}</div>
-    <div class="ev-rs ev-rs-top"></div><div class="ev-rs ev-rs-bot"></div>
+    ${it.first ? '<div class="ev-rs ev-rs-top"></div>' : ''}${it.last ? '<div class="ev-rs ev-rs-bot"></div>' : ''}
   </div>`;
 }
 
@@ -354,11 +423,11 @@ function renderNowLine() {
   const line = calInnerEl.querySelector('.cal-now');
   const label = calInnerEl.querySelector('.now-label');
   if (!line || !label) { updateAgendaNow(); return; }
-  const { H, lo, hi } = gridMetrics();
+  const g = gridMetrics();
   const days = visibleDays();
   const idx = days.indexOf(n.date);
-  if (idx === -1 || n.min < lo || n.min > hi) { line.hidden = true; label.hidden = true; return; }
-  const top = ((n.min - lo) / 60) * H;
+  if (idx === -1 || !g.segs.some(([a, b]) => n.min >= a && n.min <= b)) { line.hidden = true; label.hidden = true; return; }
+  const top = yOfMin(n.min, g);
   line.hidden = false; label.hidden = false;
   line.style.top = top + 'px';
   label.style.top = top + 'px';
@@ -375,17 +444,18 @@ function scrollToFocus(smooth) {
     return;
   }
   if (!calScrollEl) return;
-  const { H, lo, hi } = gridMetrics();
+  const g = gridMetrics();
   const n = nowInfo();
   const days = visibleDays();
-  let target = 0;
-  if (days.includes(n.date) && n.min >= lo && n.min <= hi) {
-    target = ((n.min - lo) / 60) * H - calScrollEl.clientHeight * 0.3;
+  // Por defecto el día arranca a la hora inicial (la madrugada queda arriba, a un scroll de distancia)
+  let target = yOfMin(DB.settings.dayStart * 60, g) - 8;
+  if (days.includes(n.date) && g.segs.some(([a, b]) => n.min >= a && n.min <= b)) {
+    target = yOfMin(n.min, g) - calScrollEl.clientHeight * 0.3;
   } else {
     // Sin "ahora" visible: ir al primer evento de lo que se ve
     const occs = getOccurrences(days[0], days[days.length - 1]).filter(occPassesFilters);
     const first = occs.reduce((m, o) => Math.min(m, o.start), Infinity);
-    if (isFinite(first) && first > lo) target = ((first - lo) / 60) * H - 40;
+    if (isFinite(first)) target = Math.min(target, yOfMin(first, g) - 40);
   }
   const col = calInnerEl.querySelector(`.cal-col[data-date="${n.date}"]`);
   const opts = { top: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' };
@@ -472,7 +542,12 @@ function renderAgenda() {
   const n = nowInfo();
   const isToday = date === n.date;
   const q = UI.search.trim();
-  const list = getOccurrences(date, date).filter(occPassesFilters).filter((o) => !q || occMatchesSearch(o, q));
+  const keep = (o) => occPassesFilters(o) && (!q || occMatchesSearch(o, q));
+  // Lo que sigue de la noche anterior aparece arriba, como continuación
+  const list = getOccurrences(addDays(date, -1), addDays(date, -1)).filter((o) => o.end > MIN_PER_DAY && keep(o))
+    .map((o) => ({ o, s: 0, e: o.end - MIN_PER_DAY, cont: true }))
+    .concat(getOccurrences(date, date).filter(keep).map((o) => ({ o, s: o.start, e: o.end, cont: false })))
+    .sort((a, b) => a.s - b.s);
   const sum = summarize(date, date);
   const main = mainCur();
   const stats = [
@@ -499,42 +574,44 @@ function renderAgenda() {
   let nowPlaced = !isToday;
   let prevEnd = null;
   const nowRow = () => `<li class="ag-now" data-now><span class="ag-now-time">${fmtTime(n.min)}</span><span class="ag-now-line"></span><span class="ag-now-label">Ahora</span></li>`;
-  for (const o of list) {
-    const busy = occBusyRange(o);
+  for (const it of list) {
+    const o = it.o;
+    const busy = it.cont ? [it.s, it.e] : occBusyRange(o);
     if (prevEnd != null && busy[0] - prevEnd >= 15) {
       html += `<li class="ag-gap"><span>${fmtTime(prevEnd)}</span><em>Libre ${fmtDur(busy[0] - prevEnd)}</em></li>`;
     }
     if (!nowPlaced && n.min < busy[0]) { html += nowRow(); nowPlaced = true; }
-    if (DB.settings.showTravel && o.calendar === 'faculty' && +o.travelBefore) {
+    if (!it.cont && DB.settings.showTravel && o.calendar === 'faculty' && +o.travelBefore) {
       html += `<li class="ag-travel"><span>${fmtTime(o.start - o.travelBefore)}</span><em>${icon('walk')} Traslado ${o.travelBefore} min</em></li>`;
     }
-    if (!nowPlaced && n.min < o.start) { html += nowRow(); nowPlaced = true; }
+    if (!nowPlaced && n.min < it.s) { html += nowRow(); nowPlaced = true; }
     const inc = occIncome(o);
     const { v, style } = eventStyleVars(o);
-    const running = isToday && o.start <= n.min && o.end > n.min;
-    const past = isToday ? o.end <= n.min : date < n.date;
+    const running = isToday && it.s <= n.min && it.e > n.min;
+    const past = isToday ? it.e <= n.min : date < n.date;
     if (running) nowPlaced = true;
     const meta = [
-      fmtDur(occDuration(o)),
+      it.cont ? `sigue desde el ${DAY_NAMES[weekdayOf(o.date)].toLowerCase()} ${fmtTime(o.start)}` : fmtDur(occDuration(o)),
       occSubtitle(o),
-      inc ? fmtMoney(inc.amount, inc.currency) : '',
+      inc && !it.cont ? fmtMoney(inc.amount, inc.currency) : '',
+      !it.cont && o.end > MIN_PER_DAY ? 'termina al día siguiente' : '',
     ].filter(Boolean).map(esc).join(' · ');
     const extra = [o.location, o.notes].filter(Boolean).join(' · ');
     html += `<li><button class="ag-item ${v.cls}${running ? ' is-now' : ''}${past ? ' is-past' : ''}" data-key="${esc(o.key)}" style="${style}">
-      <span class="ag-time"><b>${fmtTime(o.start)}</b><span>${fmtTime(o.end)}</span></span>
+      <span class="ag-time"><b>${fmtTime(it.s)}</b><span>${fmtTime(it.e)}</span></span>
       <span class="ag-swatch"></span>
       <span class="ag-body">
-        <span class="ag-title">${esc(o.title || 'Sin título')}
+        <span class="ag-title">${it.cont ? '↳ ' : ''}${esc(o.title || 'Sin título')}
           ${o.calendar === 'work' ? `<span class="tag">${icon(o.phone ? 'phone' : 'laptop')}${o.phone ? 'Teléfono' : 'Compu'}</span>` : `<span class="tag">${icon('cap')}Facultad</span>`}
           ${o.confirmation === 'pending' && o.calendar === 'work' ? '<span class="tag tag-warn">Por confirmar</span>' : ''}
           ${o.demo ? '<span class="tag tag-demo">demo</span>' : ''}
         </span>
         <span class="ag-meta">${meta}</span>
         ${extra ? `<span class="ag-extra">${esc(extra)}</span>` : ''}
-        ${running ? `<span class="ag-running">En curso · faltan ${fmtDur(o.end - n.min)}</span>` : ''}
+        ${running ? `<span class="ag-running">En curso · faltan ${fmtDur(it.e - n.min)}</span>` : ''}
       </span>
     </button></li>`;
-    if (DB.settings.showTravel && o.calendar === 'faculty' && +o.travelAfter) {
+    if (!it.cont && o.end <= MIN_PER_DAY && DB.settings.showTravel && o.calendar === 'faculty' && +o.travelAfter) {
       html += `<li class="ag-travel"><span>${fmtTime(o.end)}</span><em>${icon('walk')} Traslado ${o.travelAfter} min</em></li>`;
     }
     prevEnd = prevEnd == null ? busy[1] : Math.max(prevEnd, busy[1]);
@@ -565,8 +642,7 @@ function colAtX(x) {
 }
 
 function minutesAtY(colEl, y) {
-  const { H, lo } = gridMetrics();
-  return lo + ((y - colEl.getBoundingClientRect().top) / H) * 60;
+  return minAtOffset(y - colEl.getBoundingClientRect().top);
 }
 
 function onGridPointerDown(e) {
@@ -585,7 +661,9 @@ function onGridPointerDown(e) {
   };
   popoverJustClosed = false;
   if (occ) {
-    dragState.grab = m - occ.start;
+    // off = 1440 cuando se agarra la parte que sigue después de medianoche (en la columna del día siguiente)
+    dragState.off = Number(evEl.dataset.off) || 0;
+    dragState.grab = m + dragState.off - occ.start;
     dragState.ns = occ.start; dragState.ne = occ.end; dragState.nd = occ.date;
   }
   if (dragState.touch && occ) {
@@ -612,7 +690,8 @@ function activateDrag() {
 function updateDrag() {
   const ds = dragState;
   if (!ds || !ds.active) return;
-  const { H, lo, hi, snap } = gridMetrics();
+  const g = gridMetrics();
+  const { snap } = g;
   const col = ds.type === 'move' ? colAtX(ds.lastX) : ds.colEl;
   if (!col) return;
   const m = minutesAtY(col, ds.lastY);
@@ -620,30 +699,36 @@ function updateDrag() {
   let ns, ne;
   if (ds.type === 'move') {
     const dur = ds.occ.end - ds.occ.start;
-    ns = clamp(r(m - ds.grab), lo, Math.max(lo, hi - dur));
+    let date = col.dataset.date;
+    ns = r(m - ds.grab);
+    while (ns < 0) { date = addDays(date, -1); ns += MIN_PER_DAY; }
+    while (ns >= MIN_PER_DAY) { date = addDays(date, 1); ns -= MIN_PER_DAY; }
     ne = ns + dur;
-    ds.nd = col.dataset.date;
+    ds.nd = date;
   } else if (ds.type === 'resize-top') {
     ne = ds.occ.end;
-    ns = clamp(r(m), Math.min(lo, ds.occ.start), ne - snap);
+    ns = clamp(r(m + ds.off), 0, ne - snap);
   } else if (ds.type === 'resize-bot') {
     ns = ds.occ.start;
-    ne = clamp(r(m), ns + snap, Math.max(hi, ds.occ.end));
+    ne = clamp(r(m + ds.off), ns + snap, 2 * MIN_PER_DAY);
   } else {
     const a = Math.floor(ds.anchorMin / snap) * snap;
     const b = r(m);
-    ns = clamp(Math.min(a, b), lo, hi - snap);
-    ne = clamp(Math.max(a + snap, b), ns + snap, hi);
+    ns = clamp(Math.min(a, b), 0, MIN_PER_DAY - snap);
+    ne = clamp(Math.max(a + snap, b), ns + snap, MIN_PER_DAY);
     ds.nd = ds.date;
   }
   ds.ns = ns; ds.ne = ne;
   if (ds.ghost.parentNode !== col) col.appendChild(ds.ghost);
-  const top = ((Math.max(ns, lo) - lo) / 60) * H;
-  const h = ((Math.min(ne, hi) - Math.max(ns, lo)) / 60) * H;
+  // La vista previa se dibuja en la columna donde está el puntero
+  const ps = piecesOf({ date: ds.nd, start: ns, end: ne }, col.dataset.date, g.segs);
+  const top = ps.length ? yOfMin(ps[0].s, g) : yOfMin(clamp(ns, 0, MIN_PER_DAY), g);
+  const bottom = ps.length ? yOfMin(ps[ps.length - 1].e, g) : top + 14;
   ds.ghost.style.top = top + 'px';
-  ds.ghost.style.height = Math.max(h, 14) + 'px';
+  ds.ghost.style.height = Math.max(bottom - top, 14) + 'px';
   const title = ds.occ ? esc(ds.occ.title || 'Sin título') : 'Nuevo evento';
-  ds.ghost.innerHTML = `<b>${title}</b><span>${fmtTime(ns)}–${fmtTime(ne)} · ${fmtDur(ne - ns)}</span>${ds.type === 'move' && ds.nd !== ds.occ.date ? `<span>${DAY_SHORT[weekdayOf(ds.nd)]} ${Number(ds.nd.slice(8))}</span>` : ''}`;
+  const moved = ds.type === 'move' && ds.nd !== ds.occ.date;
+  ds.ghost.innerHTML = `<b>${title}</b><span>${fmtTime(ns)}–${fmtTime(ne)} · ${fmtDur(ne - ns)}</span>${moved ? `<span>${DAY_SHORT[weekdayOf(ds.nd)]} ${Number(ds.nd.slice(8))}</span>` : ''}`;
 }
 
 function autoScrollLoop() {

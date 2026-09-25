@@ -98,18 +98,17 @@ function unionMinutes(intervals, lo, hi) {
 /* ---------- Resumen de un período ---------- */
 
 function summarize(from, to) {
-  const s = DB.settings;
   const occs = getOccurrences(from, to);
   const main = mainCur();
   const days = dateRange(from, to);
-  const lo = s.dayStart * 60, hi = s.dayEnd * 60;
+  const segs = daySegments();
   const nowI = nowInfo();
   const byDay = {};
   for (const d of days) byDay[d] = { workMin: 0, facultyMin: 0, travelMin: 0, busy: [], incomeMain: 0, count: 0 };
   const byClient = new Map();
   const res = {
     from, to, days, occs,
-    workMin: 0, facultyMin: 0, travelMin: 0, occupiedMin: 0, rangeMin: days.length * (hi - lo), freeMin: 0,
+    workMin: 0, facultyMin: 0, travelMin: 0, occupiedMin: 0, rangeMin: days.length * visibleMinutes(segs), freeMin: 0,
     checks: 0, workCount: 0, facultyCount: 0, pendingConfirmMin: 0,
     incomeByCur: {}, incomeMain: 0, incomePastMain: 0, noRateCount: 0,
     byDay, byClient,
@@ -121,6 +120,8 @@ function summarize(from, to) {
     day.count++;
     const [bs, be] = occBusyRange(o);
     day.busy.push([bs, be]);
+    // Lo que pasa de la medianoche ocupa la madrugada del día siguiente
+    if (be > MIN_PER_DAY && byDay[addDays(o.date, 1)]) byDay[addDays(o.date, 1)].busy.push([Math.max(0, bs - MIN_PER_DAY), be - MIN_PER_DAY]);
     if (o.calendar === 'work') {
       res.workMin += dur; day.workMin += dur; res.workCount++;
       if (o.isCheck) res.checks++;
@@ -146,7 +147,7 @@ function summarize(from, to) {
     }
   }
   for (const d of days) {
-    const occ = unionMinutes(byDay[d].busy, lo, hi);
+    const occ = segs.reduce((t, [a, b]) => t + unionMinutes(byDay[d].busy, a, b), 0);
     byDay[d].occupiedMin = occ;
     res.occupiedMin += occ;
   }
@@ -270,12 +271,17 @@ function detectAlerts(from, to) {
       check();
     }
 
-    // 3. Termina después de medianoche
+    // 3. Madrugada y trabajo que termina después de medianoche
+    const early = list.filter((o) => o.start < 6 * 60);
+    if (early.length) {
+      alerts.push({ type: 'midnight', level: 'info', date, start: early[0].start, keys: [early[0].key],
+        text: `${capitalize(dayLabel)} de madrugada: «${early[0].title || 'sin título'}» a las ${fmtTime(early[0].start)}${early.length > 1 ? ` y ${early.length - 1} más` : ''}.` });
+    }
     const late = list.filter((o) => o.end > MIN_PER_DAY);
     if (late.length) {
       const last = late.reduce((a, b) => (b.end > a.end ? b : a));
       alerts.push({ type: 'midnight', level: 'info', date, start: last.start, keys: [last.key],
-        text: `${capitalize(dayLabel)} terminás a las ${fmtTime(last.end)} (${last.title || 'sin título'}).` });
+        text: `${capitalize(dayLabel)} terminás a las ${fmtTime(last.end)} del día siguiente (${last.title || 'sin título'}).` });
     }
 
     // 4. Eventos muy cercanos entre sí
@@ -352,9 +358,23 @@ function buildInsights(sum, alerts, opts = {}) {
 
 function nowInfo() {
   const d = new Date();
-  let min = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
-  let date = ymd(d);
-  const cut = DB.settings.dayEnd * 60 - MIN_PER_DAY;
-  if (cut > 0 && min < cut) { date = addDays(date, -1); min += MIN_PER_DAY; }
-  return { date, min };
+  return { date: ymd(d), min: d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60 };
+}
+
+/* Tramos visibles de cada día, en minutos desde la medianoche.
+   Con "hora final" después de medianoche (p. ej. 02:00), la madrugada 00:00–02:00 se muestra arriba del día
+   y las horas del medio (02:00–08:00) quedan ocultas. */
+function daySegments() {
+  const s = DB.settings;
+  const start = s.dayStart * 60;
+  if (s.dayEnd <= 24) return [[start, s.dayEnd * 60]];
+  const early = (s.dayEnd - 24) * 60;
+  if (early >= start) return [[0, MIN_PER_DAY]];
+  return [[0, early], [start, MIN_PER_DAY]];
+}
+
+function visibleMinutes(segs) { return segs.reduce((t, [a, b]) => t + b - a, 0); }
+
+function segmentsLabel() {
+  return daySegments().map(([a, b]) => `${fmtTime(a)}–${b === MIN_PER_DAY ? '24:00' : fmtTime(b)}`).join(' y ');
 }

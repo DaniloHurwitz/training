@@ -12,7 +12,7 @@ const TASK_TYPES = ['Check', 'Traducción', 'Revisión', 'Edición', 'Reunión',
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#0e7c86', '#8a5a2b'];
 const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments'];
 /* Preferencias propias de cada dispositivo: no se sincronizan */
-const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme'];
+const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme', 'notifyEnabled', 'notifyMinutes', 'notifyExtraMinutes', 'notifyDaily', 'notifyDailyTime'];
 
 function defaultSettings() {
   return {
@@ -37,6 +37,11 @@ function defaultSettings() {
     showIncomeInEvents: true,
     showTravel: true,
     lastBackupAt: null,
+    notifyEnabled: false,      // avisos en este dispositivo
+    notifyMinutes: 15,         // aviso antes de cada evento
+    notifyExtraMinutes: 30,    // aviso extra, más temprano, para tareas con compu o complejas
+    notifyDaily: true,         // resumen del día
+    notifyDailyTime: '08:00',
   };
 }
 
@@ -95,15 +100,29 @@ function normalizeData(raw) {
     for (const k of SYNC_COLLECTIONS) if (raw.deleted[k] && typeof raw.deleted[k] === 'object') d.deleted[k] = Object.assign({}, raw.deleted[k]);
   }
   d.stamps = Object.assign(d.stamps, raw.stamps || {});
-  for (const ev of d.events) {
-    ev.calendar = ev.calendar === 'faculty' ? 'faculty' : 'work';
-    ev.start = Number(ev.start) || 0;
-    ev.end = Number(ev.end) || ev.start + 60;
-    if (ev.end <= ev.start) ev.end = ev.start + 15;
-    if (!isYmd(ev.date)) ev.date = todayYmd();
-    if (ev.exceptions && typeof ev.exceptions !== 'object') ev.exceptions = {};
-  }
+  for (const ev of d.events) normalizeEvent(ev);
   return d;
+}
+
+/* Cada evento va en su fecha real: 01:00 del viernes es la madrugada del viernes.
+   (La versión anterior guardaba la madrugada como horas 24+ del día previo: se pasa a la misma fecha.) */
+function normalizeEvent(ev) {
+  ev.calendar = ev.calendar === 'faculty' ? 'faculty' : 'work';
+  ev.start = Number(ev.start) || 0;
+  ev.end = Number(ev.end) || ev.start + 60;
+  if (ev.end <= ev.start) ev.end = ev.start + 15;
+  if (!isYmd(ev.date)) ev.date = todayYmd();
+  if (!ev.exceptions || typeof ev.exceptions !== 'object') ev.exceptions = {};
+  const baseStart = ev.start;
+  if (ev.start >= MIN_PER_DAY) { ev.start -= MIN_PER_DAY; ev.end -= MIN_PER_DAY; }
+  for (const ov of Object.values(ev.exceptions)) {
+    if (!ov || typeof ov !== 'object') continue;
+    if ((ov.start != null ? ov.start : baseStart) >= MIN_PER_DAY) {
+      if (ov.start != null) ov.start -= MIN_PER_DAY;
+      if (ov.end != null) ov.end -= MIN_PER_DAY;
+    }
+  }
+  return ev;
 }
 
 function loadDB() {
@@ -286,6 +305,7 @@ function mergeRemote(d, r) {
   d.stamps = d.stamps || { settings: 0, rates: 0 };
   for (const k of SYNC_COLLECTIONS) {
     const theirs = Array.isArray(r[k]) ? r[k].filter((x) => x && typeof x === 'object' && x.id) : [];
+    if (k === 'events') theirs.forEach(normalizeEvent);
     const tomb = Object.assign({}, d.deleted[k] || {});
     for (const [id, ts] of Object.entries((r.deleted && r.deleted[k]) || {})) if (!(tomb[id] >= ts)) tomb[id] = ts;
     const mine = new Map(d[k].map((x) => [x.id, x]));

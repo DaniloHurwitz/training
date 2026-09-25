@@ -290,7 +290,7 @@ function setupPrint() {
     const s = DB.settings;
     printPrev = s.hourHeight;
     document.documentElement.dataset.themeResolved = 'light';
-    s.hourHeight = clamp(Math.floor(600 / (s.dayEnd - s.dayStart)), 18, 48);
+    s.hourHeight = clamp(Math.floor(560 / (visibleMinutes(daySegments()) / 60)), 18, 48);
     const [from, to] = weekRange(UI.date);
     const cal = UI.calFilter === 'work' ? 'Trabajo' : UI.calFilter === 'faculty' ? 'Facultad' : 'Trabajo y Facultad';
     document.getElementById('printHead').textContent = `Agenda${s.userName ? ' de ' + s.userName : ''} · ${fmtDateShort(from)} – ${fmtDateShort(to)} ${to.slice(0, 4)} · ${cal}`;
@@ -308,12 +308,12 @@ function setupPrint() {
 /* ---------- Diálogos varios ---------- */
 
 function showOutOfRange(date) {
-  const s = DB.settings;
-  const lo = s.dayStart * 60, hi = s.dayEnd * 60;
-  const list = getOccurrences(date, date).filter(occPassesFilters).filter((o) => o.end <= lo || o.start >= hi);
+  const segs = daySegments();
+  const list = getOccurrences(date, date).filter(occPassesFilters)
+    .filter((o) => !piecesOf(o, date, segs).length && !(o.end > MIN_PER_DAY && piecesOf(o, addDays(date, 1), segs).length));
   const m = openModal({
     title: `Fuera del horario visible · ${capitalize(fmtDateLong(date))}`, size: 'sm',
-    body: `<p class="muted small">Estos eventos quedan fuera de ${fmtTime(lo)}–${fmtTime(hi)}. Podés ampliar el horario en Configuración.</p>
+    body: `<p class="muted small">Estos eventos quedan fuera de las horas visibles (${esc(segmentsLabel())}). Podés ampliar el horario en Configuración.</p>
       <ul class="mini-list">${list.map((o) => `<li><button class="link" data-k="${esc(o.key)}"><span>${fmtTime(o.start)}–${fmtTime(o.end)}</span><b>${esc(o.title)}</b></button></li>`).join('')}</ul>`,
   });
   m.el.addEventListener('click', (e) => {
@@ -408,6 +408,7 @@ async function handleAction(a, el) {
       showSection('settings');
       requestAnimationFrame(() => { const b = document.getElementById('syncBlock'); if (b) b.scrollIntoView({ block: 'start' }); });
       break;
+    case 'notify-test': testNotification(); break;
     case 'sync-pair': beginPairing(); break;
     case 'sync-join': joinWithCode((document.getElementById('syncCode') || {}).value); break;
     case 'sync-now': syncNow(); break;
@@ -508,6 +509,12 @@ function setupEvents() {
   setEl.addEventListener('change', (e) => {
     const t = e.target;
     const s = DB.settings;
+    if (t.dataset.notifyToggle != null) {
+      if (!t.checked) { commit((d) => { d.settings.notifyEnabled = false; }); return; }
+      t.checked = false;
+      enableNotifications().then((ok) => { if (ok) commit((d) => { d.settings.notifyEnabled = true; }, { toast: 'Avisos activados en este dispositivo' }); else renderSettings(); });
+      return;
+    }
     if (t.dataset.set) {
       const key = t.dataset.set;
       let v = t.value;
@@ -640,6 +647,7 @@ function init() {
   if (!storageOk) toast('Este navegador no permite guardar datos (modo privado o almacenamiento bloqueado). Exportá un backup antes de cerrar.', { kind: 'error', duration: 9000 });
   showSection(UI.section || 'calendar');
   initSync();
+  initNotify();
 }
 
 document.addEventListener('DOMContentLoaded', init);
