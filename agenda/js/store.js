@@ -12,7 +12,7 @@ const TASK_TYPES = ['Check', 'Traducción', 'Revisión', 'Edición', 'Reunión',
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#0e7c86', '#8a5a2b'];
 const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments'];
 /* Preferencias propias de cada dispositivo: no se sincronizan */
-const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme', 'notifyEnabled', 'notifyMinutes', 'notifyExtraMinutes', 'notifyDaily', 'notifyDailyTime'];
+const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme', 'notifyEnabled'];
 
 function defaultSettings() {
   return {
@@ -42,6 +42,7 @@ function defaultSettings() {
     notifyExtraMinutes: 30,    // aviso extra, más temprano, para tareas con compu o complejas
     notifyDaily: true,         // resumen del día
     notifyDailyTime: '08:00',
+    pushTopic: '',             // canal de ntfy para avisos en el teléfono ('' = desactivado)
   };
 }
 
@@ -61,6 +62,7 @@ function emptyData() {
     payments: [],
     deleted: {},                       // {colección: {id: fecha de borrado}}
     stamps: { settings: 0, rates: 0 }, // fecha del último cambio de configuración y tipo de cambio
+    pushLog: {},                       // avisos ya programados en ntfy: {id: {at, h, t, topic, del}}
     meta: { createdAt: new Date().toISOString() },
   };
 }
@@ -100,6 +102,7 @@ function normalizeData(raw) {
     for (const k of SYNC_COLLECTIONS) if (raw.deleted[k] && typeof raw.deleted[k] === 'object') d.deleted[k] = Object.assign({}, raw.deleted[k]);
   }
   d.stamps = Object.assign(d.stamps, raw.stamps || {});
+  if (raw.pushLog && typeof raw.pushLog === 'object') d.pushLog = Object.assign({}, raw.pushLog);
   for (const ev of d.events) normalizeEvent(ev);
   return d;
 }
@@ -260,6 +263,7 @@ function commit(mutator, opts = {}) {
   saveDB();
   renderAll();
   if (inv && typeof syncLocalChange === 'function') syncLocalChange();
+  if (inv && typeof pushLocalChange === 'function') pushLocalChange();
   if (opts.undo && inv) {
     // Solo el último "Deshacer" es válido
     document.querySelectorAll('#toasts .toast.has-undo').forEach((t) => t.remove());
@@ -279,7 +283,7 @@ function canonical(v) {
 
 /* Lo que se comparte con los otros dispositivos */
 function syncPayload(d) {
-  const p = { v: DATA_VERSION, settings: sharedSettings(d.settings), rates: d.rates, stamps: d.stamps, deleted: d.deleted };
+  const p = { v: DATA_VERSION, settings: sharedSettings(d.settings), rates: d.rates, stamps: d.stamps, deleted: d.deleted, pushLog: d.pushLog };
   for (const k of SYNC_COLLECTIONS) p[k] = d[k];
   return p;
 }
@@ -338,6 +342,11 @@ function mergeRemote(d, r) {
     d.stamps.rates = rr;
   }
   lastStamp = Math.max(lastStamp, rs, rr);
+  // Registro de avisos programados: gana la entrada más reciente (no cuenta como cambio visible)
+  d.pushLog = d.pushLog || {};
+  for (const [seq, e] of Object.entries((r.pushLog && typeof r.pushLog === 'object') ? r.pushLog : {})) {
+    if (e && typeof e === 'object' && (!d.pushLog[seq] || (e.t || 0) > (d.pushLog[seq].t || 0))) d.pushLog[seq] = e;
+  }
   return changed;
 }
 

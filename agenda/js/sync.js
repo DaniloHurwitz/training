@@ -229,10 +229,11 @@ function receiveState(c, slot, data) {
     return;
   }
   const changed = mergeRemote(DB, data);
+  saveDB();
   if (changed) {
     invalidateCaches();
-    saveDB();
     renderAll();
+    pushLocalChange();
   }
   if (SYNC.peers[slot]) SYNC.peers[slot].lastSync = SYNC.peers[slot].lastSeen = Date.now();
   saveSyncState();

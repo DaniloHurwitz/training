@@ -39,9 +39,8 @@ function upcomingReminders(fromMs, toMs) {
   const s = DB.settings;
   const base = Math.max(1, Number(s.notifyMinutes) || 15);
   const extra = Number(s.notifyExtraMinutes) || 0;
-  const today = todayYmd();
   const out = [];
-  for (const o of getOccurrences(addDays(today, -1), addDays(today, 2))) {
+  for (const o of getOccurrences(ymd(new Date(fromMs - 864e5)), ymd(new Date(toMs + 864e5)))) {
     const startMs = occStartMs(o);
     if (startMs < fromMs) continue;
     const travel = o.calendar === 'faculty' ? Number(o.travelBefore) || 0 : 0;
@@ -92,6 +91,8 @@ function dailySummaryText(date) {
 async function showNotice(title, body, tag, occ) {
   if (document.visibilityState === 'visible') toast(`${title} · ${body.split('\n')[0]}`, { duration: 9000 });
   if (notifyPermission() !== 'granted') return;
+  // En el teléfono con ntfy activo, el aviso ya llega por ntfy: no se duplica
+  if (isMobile() && typeof pushActive === 'function' && pushActive()) return;
   const data = { url: location.href.split('#')[0], date: occ ? occ.date : null, key: occ ? occ.key : null };
   const opts = { body, tag, data, renotify: true };
   try {
