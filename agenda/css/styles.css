@@ -587,11 +587,9 @@ input[type="date"], input[type="time"] { font-variant-numeric: tabular-nums; }
   white-space: nowrap;
   line-height: 1;
 }
-.gl.is-first { transform: translateY(3px); }
-.gl.is-last { transform: translateY(-110%); }
-.gl.is-night span { color: var(--text-3); opacity: 0.85; }
-.gl.is-midnight span { color: var(--text-2); font-weight: 600; }
-.gl em { font-style: normal; font-size: 9px; margin-left: 2px; vertical-align: 3px; color: var(--text-3); }
+.gl.is-first, .gl.is-seg-start { transform: translateY(3px); }
+.gl.is-last, .gl.is-seg-end { transform: translateY(-110%); }
+.gl.is-night span { color: var(--text-2); }
 .now-label {
   position: absolute;
   right: 3px;
@@ -612,21 +610,43 @@ input[type="date"], input[type="time"] { font-variant-numeric: tabular-nums; }
   grid-row: 2;
   position: relative;
   border-left: 1px solid var(--line-hour);
-  background-image:
-    linear-gradient(to bottom, var(--line-hour) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--line-slot) 1px, transparent 1px);
-  background-size: 100% var(--hour-h, 52px), 100% calc(var(--hour-h, 52px) / var(--slots, 4));
   cursor: cell;
 }
 .cal-col.is-weekend { background-color: var(--weekend); }
 .cal-col.is-today { background-color: var(--today-col); }
-.night-zone {
+/* Cada tramo visible del día lleva sus líneas de horas */
+.seg-bg {
   position: absolute;
   left: 0;
   right: 0;
-  background: var(--night);
-  border-top: 1px dashed var(--border-strong);
   pointer-events: none;
+  background-image:
+    linear-gradient(to bottom, var(--line-hour) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-slot) 1px, transparent 1px);
+  background-size: 100% var(--hour-h, 52px), 100% calc(var(--hour-h, 52px) / var(--slots, 4));
+}
+.seg-bg.is-early { background-color: var(--night); }
+/* Horas ocultas (p. ej. 02:00–08:00) */
+.seg-gap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 10px) top / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 10px) bottom / 100% 1px no-repeat,
+    var(--surface-2);
+}
+.gl-gap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  font-size: 9.5px;
+  color: var(--text-3);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .cal-overlay { grid-row: 2; grid-column: 2 / -1; position: relative; z-index: 5; pointer-events: none; }
 .cal-now { position: absolute; left: 0; right: 0; height: 0; transition: top 0.6s linear; }

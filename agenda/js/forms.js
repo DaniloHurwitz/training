@@ -145,11 +145,8 @@ function clearErrors(form) {
   form.querySelectorAll('.field-err').forEach((x) => x.remove());
 }
 
-/* Horas del formulario → minutos (después de medianoche se guarda como el mismo día + 24 h) */
+/* Horas del formulario → minutos del día elegido. Si el fin es menor que el inicio, termina al día siguiente. */
 function normalizeTimes(start, end) {
-  const s = DB.settings;
-  const cut = s.dayEnd * 60 - MIN_PER_DAY;
-  if (cut > 0 && start < cut && start < s.dayStart * 60) start += MIN_PER_DAY;
   let e = end;
   while (e <= start) e += MIN_PER_DAY;
   return { start, end: e };
@@ -179,7 +176,8 @@ function openEventForm(opts2 = {}) {
     let start = opts2.start;
     if (start == null) {
       start = date === nowI.date ? Math.ceil(nowI.min / 30) * 30 : 9 * 60;
-      start = clamp(start, s.dayStart * 60, s.dayEnd * 60 - 60);
+      if (!daySegments().some(([a, b]) => start >= a && start < b)) start = s.dayStart * 60;
+      start = Math.min(start, MIN_PER_DAY - 60);
     }
     o = {
       calendar: cal, title: '', date, start, end: opts2.end != null ? opts2.end : start + 60,
@@ -404,12 +402,14 @@ function openEventForm(opts2 = {}) {
       E.duration.value = fmtDur(times.end - times.start);
       const d = E.date.value;
       const notes = [];
+      const segs = daySegments();
       if (isYmd(d)) {
-        const next = addDays(d, 1);
-        if (times.start >= MIN_PER_DAY) notes.push(`Empieza después de medianoche (${DAY_NAMES[weekdayOf(next)].toLowerCase()} ${fmtTime(times.start)}); se muestra al final del ${DAY_NAMES[weekdayOf(d)].toLowerCase()}.`);
-        else if (times.end > MIN_PER_DAY) notes.push(`Termina después de medianoche: ${DAY_NAMES[weekdayOf(next)].toLowerCase()} a las ${fmtTime(times.end)}.`);
+        const dayName = DAY_NAMES[weekdayOf(d)].toLowerCase();
+        if (segs.length > 1 && times.start < segs[0][1]) notes.push(`Madrugada del ${dayName}: se muestra arriba del día, antes de las ${fmtTime(s.dayStart * 60)}.`);
+        if (times.end > MIN_PER_DAY) notes.push(`Termina después de medianoche: ${DAY_NAMES[weekdayOf(addDays(d, 1))].toLowerCase()} a las ${fmtTime(times.end)}.`);
       }
-      if (times.end <= s.dayStart * 60 || times.start >= s.dayEnd * 60) notes.push(`Queda fuera del horario visible (${fmtTime(s.dayStart * 60)}–${fmtTime(s.dayEnd * 60)}).`);
+      const visibleStart = segs.some(([a, b]) => times.start < b && times.end > a) || times.end > MIN_PER_DAY;
+      if (!visibleStart) notes.push(`Queda en las horas ocultas del calendario (${segs.length > 1 ? `${fmtTime(segs[0][1])}–${fmtTime(segs[1][0])}` : 'fuera del rango visible'}). Podés ampliarlo en Configuración.`);
       hint.textContent = notes.join(' ');
       hint.hidden = !notes.length;
     } else {

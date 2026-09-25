@@ -62,7 +62,7 @@ function timeSplitHtml(sum) {
       <div><dt>Total ocupado</dt><dd>${fmtDur(sum.occupiedMin)}</dd></div>
       <div><dt>Tiempo libre</dt><dd>${fmtDur(free)}</dd></div>
     </dl>
-    <p class="muted small">Horas libres dentro de ${fmtTime(s.dayStart * 60)}–${fmtTime(s.dayEnd * 60)} (${Math.round((free / total) * 100)}% del período). Las superposiciones no se cuentan dos veces.</p>
+    <p class="muted small">Horas libres dentro de ${esc(segmentsLabel())} (${Math.round((free / total) * 100)}% del período). Las superposiciones no se cuentan dos veces.</p>
   </div>`;
 }
 
@@ -542,13 +542,14 @@ function renderSettings() {
   const s = DB.settings;
   const hourOpts = (from, to, sel) => {
     const o = [];
-    for (let h = from; h <= to; h++) o.push([h, fmtTime(h * 60) + (h >= 24 ? ' (+1 día)' : '')]);
+    for (let h = from; h <= to; h++) o.push([h, h === 24 ? '24:00' : fmtTime(h * 60) + (h > 24 ? ' · madrugada arriba' : '')]);
     return opts(o, sel);
   };
   const backupAge = s.lastBackupAt ? (Date.now() - new Date(s.lastBackupAt).getTime()) / 864e5 : Infinity;
   el.innerHTML = sectionHead('Configuración', '', 'Los cambios se guardan automáticamente en este navegador.') + `
     <div class="settings">
       <section class="block block-wide sync-block" id="syncBlock">${syncBlockHtml()}</section>
+      <section class="block block-wide" id="notifyBlock">${notifyBlockHtml()}</section>
       <section class="block">
         <h2>General</h2>
         <div class="grid-2">
@@ -637,6 +638,23 @@ function renderSettings() {
       </section>
     </div>`;
   bindSeg(el, 'theme', (v) => { commit((d) => { d.settings.theme = v; }); applyTheme(); });
+}
+
+function notifyBlockHtml() {
+  const s = DB.settings;
+  const st = notifyStatusText();
+  return `<h2>${icon('clock')} Avisos en este dispositivo</h2>
+    <p class="sync-line"><i class="sync-dot is-${st.cls}"></i><b>${esc(st.text)}</b></p>
+    <label class="check"><input type="checkbox" data-notify-toggle ${s.notifyEnabled && notifyPermission() === 'granted' ? 'checked' : ''} ${notifySupported() ? '' : 'disabled'}> Avisarme antes de cada evento</label>
+    <div class="grid-3 notify-grid">
+      <label class="field"><span>Aviso (minutos antes)</span><input type="number" min="1" max="240" step="1" data-set="notifyMinutes" data-type="num" value="${s.notifyMinutes ?? 15}"></label>
+      <label class="field"><span>Segundo aviso para tareas con compu o complejas</span><input type="number" min="0" max="480" step="5" data-set="notifyExtraMinutes" data-type="num" value="${s.notifyExtraMinutes ?? 30}"></label>
+      <label class="field"><span>Resumen del día a las</span><input type="time" data-set="notifyDailyTime" value="${esc(s.notifyDailyTime || '08:00')}"></label>
+    </div>
+    <label class="check"><input type="checkbox" data-set="notifyDaily" data-type="check" ${s.notifyDaily ? 'checked' : ''}> Mandarme un resumen de lo que hay cada día</label>
+    <div class="btn-row"><button class="btn" data-action="notify-test">${icon('clock')} Probar aviso</button></div>
+    <p class="muted small">Ejemplo: «En 15 min: BMS Spanish check». Las tareas que necesitan la compu (o marcadas como complejas) avisan dos veces: a los ${s.notifyExtraMinutes ?? 30} y a los ${s.notifyMinutes ?? 15} min. Para la facultad, el aviso cuenta el tiempo de traslado.</p>
+    <p class="muted small">Los avisos llegan mientras la agenda está abierta en este dispositivo: en la computadora alcanza con dejar la pestaña abierta (aunque esté minimizada). En el teléfono, solo mientras la agenda está abierta.</p>`;
 }
 
 function shortcutsHtml() {
