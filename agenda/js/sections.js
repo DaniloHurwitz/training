@@ -550,6 +550,7 @@ function renderSettings() {
     <div class="settings">
       <section class="block block-wide sync-block" id="syncBlock">${syncBlockHtml()}</section>
       <section class="block block-wide" id="notifyBlock">${notifyBlockHtml()}</section>
+      <section class="block block-wide" id="pushBlock">${pushBlockHtml()}</section>
       <section class="block">
         <h2>General</h2>
         <div class="grid-2">
@@ -643,9 +644,9 @@ function renderSettings() {
 function notifyBlockHtml() {
   const s = DB.settings;
   const st = notifyStatusText();
-  return `<h2>${icon('clock')} Avisos en este dispositivo</h2>
+  return `<h2>${icon('clock')} Avisos</h2>
     <p class="sync-line"><i class="sync-dot is-${st.cls}"></i><b>${esc(st.text)}</b></p>
-    <label class="check"><input type="checkbox" data-notify-toggle ${s.notifyEnabled && notifyPermission() === 'granted' ? 'checked' : ''} ${notifySupported() ? '' : 'disabled'}> Avisarme antes de cada evento</label>
+    <label class="check"><input type="checkbox" data-notify-toggle ${s.notifyEnabled && notifyPermission() === 'granted' ? 'checked' : ''} ${notifySupported() ? '' : 'disabled'}> Mostrar avisos en este dispositivo mientras la agenda está abierta</label>
     <div class="grid-3 notify-grid">
       <label class="field"><span>Aviso (minutos antes)</span><input type="number" min="1" max="240" step="1" data-set="notifyMinutes" data-type="num" value="${s.notifyMinutes ?? 15}"></label>
       <label class="field"><span>Segundo aviso para tareas con compu o complejas</span><input type="number" min="0" max="480" step="5" data-set="notifyExtraMinutes" data-type="num" value="${s.notifyExtraMinutes ?? 30}"></label>
@@ -654,7 +655,7 @@ function notifyBlockHtml() {
     <label class="check"><input type="checkbox" data-set="notifyDaily" data-type="check" ${s.notifyDaily ? 'checked' : ''}> Mandarme un resumen de lo que hay cada día</label>
     <div class="btn-row"><button class="btn" data-action="notify-test">${icon('clock')} Probar aviso</button></div>
     <p class="muted small">Ejemplo: «En 15 min: BMS Spanish check». Las tareas que necesitan la compu (o marcadas como complejas) avisan dos veces: a los ${s.notifyExtraMinutes ?? 30} y a los ${s.notifyMinutes ?? 15} min. Para la facultad, el aviso cuenta el tiempo de traslado.</p>
-    <p class="muted small">Los avisos llegan mientras la agenda está abierta en este dispositivo: en la computadora alcanza con dejar la pestaña abierta (aunque esté minimizada). En el teléfono, solo mientras la agenda está abierta.</p>`;
+    <p class="muted small">Estos avisos del navegador llegan mientras la agenda está abierta en este dispositivo (en la computadora alcanza con dejar la pestaña abierta, aunque esté minimizada). Para recibirlos en el teléfono con todo cerrado, activá ntfy abajo.</p>`;
 }
 
 function shortcutsHtml() {

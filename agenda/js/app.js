@@ -338,6 +338,7 @@ function openMoreMenu() {
     title: 'Más', size: 'sm', className: 'modal-more',
     body: `<nav class="more-list">
       <button data-go="sync">${icon('phone')}<span>Sincronizar dispositivos<small><i class="sync-dot is-${st.cls}"></i>${esc(st.text)}</small></span>${icon('chevron-right')}</button>
+      <button data-go="push">${icon('clock')}<span>Avisos en el teléfono<small><i class="sync-dot is-${pushActive() ? 'ok' : 'off'}"></i>${pushActive() ? 'Activados con ntfy' : 'Desactivados'}</small></span>${icon('chevron-right')}</button>
       ${items.map(([s, ic, l]) => `<button data-go="${s}">${icon(ic)}<span>${l}</span>${icon('chevron-right')}</button>`).join('')}
       <button data-go="export">${icon('download')}<span>Exportar backup completo</span></button></nav>`,
   });
@@ -347,6 +348,7 @@ function openMoreMenu() {
     m.close();
     if (b.dataset.go === 'export') exportJSON();
     else if (b.dataset.go === 'sync') handleAction('goto-sync', b);
+    else if (b.dataset.go === 'push') { showSection('settings'); requestAnimationFrame(() => { const el = document.getElementById('pushBlock'); if (el) el.scrollIntoView({ block: 'start' }); }); }
     else showSection(b.dataset.go);
   });
 }
@@ -409,6 +411,15 @@ async function handleAction(a, el) {
       requestAnimationFrame(() => { const b = document.getElementById('syncBlock'); if (b) b.scrollIntoView({ block: 'start' }); });
       break;
     case 'notify-test': testNotification(); break;
+    case 'push-enable': enablePush(); break;
+    case 'push-disable': disablePush(); break;
+    case 'push-test': pushTest(false); break;
+    case 'push-copy': {
+      const input = document.querySelector('.push-topic input');
+      try { await navigator.clipboard.writeText(input.value); } catch (e) { input.select(); document.execCommand('copy'); }
+      toast('Nombre del canal copiado. Pegalo en ntfy (botón +).');
+      break;
+    }
     case 'sync-pair': beginPairing(); break;
     case 'sync-join': joinWithCode((document.getElementById('syncCode') || {}).value); break;
     case 'sync-now': syncNow(); break;
@@ -648,6 +659,7 @@ function init() {
   showSection(UI.section || 'calendar');
   initSync();
   initNotify();
+  initPush();
 }
 
 document.addEventListener('DOMContentLoaded', init);
