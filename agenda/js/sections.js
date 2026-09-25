@@ -650,12 +650,23 @@ function notifyBlockHtml() {
     <div class="grid-3 notify-grid">
       <label class="field"><span>Aviso (minutos antes)</span><input type="number" min="1" max="240" step="1" data-set="notifyMinutes" data-type="num" value="${s.notifyMinutes ?? 15}"></label>
       <label class="field"><span>Segundo aviso para tareas con compu o complejas</span><input type="number" min="0" max="480" step="5" data-set="notifyExtraMinutes" data-type="num" value="${s.notifyExtraMinutes ?? 30}"></label>
+      <label class="field"><span>Aviso temprano para todo (0 = no)</span><input type="number" min="0" max="480" step="5" data-set="notifyEarlyMinutes" data-type="num" value="${s.notifyEarlyMinutes ?? 60}"></label>
       <label class="field"><span>Resumen del día a las</span><input type="time" data-set="notifyDailyTime" value="${esc(s.notifyDailyTime || '08:00')}"></label>
+      <label class="field"><span>Resumen de mañana a las</span><input type="time" data-set="notifyEveningTime" value="${esc(s.notifyEveningTime || '21:00')}"></label>
+      <label class="field"><span>«No te olvides» de madrugada a las</span><input type="time" data-set="notifyNightTime" value="${esc(s.notifyNightTime || '22:30')}"></label>
     </div>
-    <label class="check"><input type="checkbox" data-set="notifyDaily" data-type="check" ${s.notifyDaily ? 'checked' : ''}> Mandarme un resumen de lo que hay cada día</label>
+    <div class="notify-checks">
+      <label class="check"><input type="checkbox" data-set="notifyDaily" data-type="check" ${s.notifyDaily ? 'checked' : ''}> Resumen del día, cada mañana</label>
+      <label class="check"><input type="checkbox" data-set="notifyEvening" data-type="check" ${s.notifyEvening ? 'checked' : ''}> Resumen de mañana, cada noche</label>
+      <label class="check"><input type="checkbox" data-set="notifyWeekly" data-type="check" ${s.notifyWeekly ? 'checked' : ''}> Resumen de la semana, los ${DAY_NAMES[s.weekStart].toLowerCase()}</label>
+      <label class="check"><input type="checkbox" data-set="notifyClasses" data-type="check" ${s.notifyClasses ? 'checked' : ''}> «Hoy tenés clase de…»</label>
+      <label class="check"><input type="checkbox" data-set="notifyExams" data-type="check" ${s.notifyExams ? 'checked' : ''}> Cuenta regresiva de parciales, finales y entregas (14, 7, 3, 2 y 1 días antes, y el mismo día)</label>
+      <label class="check"><input type="checkbox" data-set="notifyNight" data-type="check" ${s.notifyNight ? 'checked' : ''}> «No te olvides» la noche anterior a lo que cae de madrugada</label>
+      <label class="check"><input type="checkbox" data-set="notifyMoney" data-type="check" ${s.notifyMoney ? 'checked' : ''}> Cobros que vencen</label>
+    </div>
     <div class="btn-row"><button class="btn" data-action="notify-test">${icon('clock')} Probar aviso</button></div>
-    <p class="muted small">Ejemplo: «En 15 min: BMS Spanish check». Las tareas que necesitan la compu (o marcadas como complejas) avisan dos veces: a los ${s.notifyExtraMinutes ?? 30} y a los ${s.notifyMinutes ?? 15} min. Para la facultad, el aviso cuenta el tiempo de traslado.</p>
-    <p class="muted small">Estos avisos del navegador llegan mientras la agenda está abierta en este dispositivo (en la computadora alcanza con dejar la pestaña abierta, aunque esté minimizada). Para recibirlos en el teléfono con todo cerrado, activá ntfy abajo.</p>`;
+    <p class="muted small">Ejemplo: «En 15 min: BMS Spanish check». Cada evento avisa ${+s.notifyEarlyMinutes > (+s.notifyMinutes || 15) ? `${fmtDur(+s.notifyEarlyMinutes)} antes y ` : ''}${s.notifyMinutes ?? 15} min antes; las tareas que necesitan la compu (o marcadas como complejas), también ${s.notifyExtraMinutes ?? 30} min antes. Para la facultad, el aviso cuenta el tiempo de traslado.</p>
+    <p class="muted small">Estos avisos del navegador llegan mientras la agenda está abierta en este dispositivo (en la computadora alcanza con dejar la pestaña abierta, aunque esté minimizada). Los resúmenes largos, la cuenta regresiva de parciales y los «no te olvides» llegan al teléfono con ntfy, con todo cerrado: activalo abajo.</p>`;
 }
 
 function shortcutsHtml() {

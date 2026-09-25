@@ -414,6 +414,7 @@ async function handleAction(a, el) {
     case 'push-enable': enablePush(); break;
     case 'push-disable': disablePush(); break;
     case 'push-test': pushTest(false); break;
+    case 'push-now': pushNow(el.dataset.kind); break;
     case 'push-copy': {
       const input = document.querySelector('.push-topic input');
       try { await navigator.clipboard.writeText(input.value); } catch (e) { input.select(); document.execCommand('copy'); }
