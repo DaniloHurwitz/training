@@ -1095,6 +1095,15 @@ body.panel-closed .cal-panel { display: none; }
 .push-steps { margin: 4px 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; max-width: 760px; }
 .push-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
 .push-topic { flex: 1 1 280px; margin: 0; max-width: 420px; }
+.notify-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; margin-bottom: 8px; }
+.notify-checks .check { margin: 4px 0; align-items: flex-start; }
+.notify-checks .check input { margin-top: 2px; }
+.push-next { margin: 8px 0 14px; font-size: 13.5px; }
+.push-next summary { cursor: pointer; color: var(--text-2); }
+.push-next ul { list-style: none; margin: 8px 0 0; padding: 0; max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.push-next li { display: flex; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border); }
+.push-next li:first-child { border-top: 0; }
+.push-next li span { flex: none; width: 88px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 
 /* ---------- Panel del cliente ---------- */
 
@@ -1387,6 +1396,7 @@ body.pop-open .pop-backdrop { display: block; position: fixed; inset: 0; z-index
   .section:not(.sec-calendar) { padding: 16px 14px 40px; }
   .sec-head h1 { font-size: 20px; }
   .grid-3 { grid-template-columns: 1fr 1fr; }
+  .notify-checks { grid-template-columns: 1fr; }
   .evf-when { grid-template-columns: 1fr 1fr; }
   .evf-device { grid-template-columns: 1fr; }
   .evf-preview { height: 42px; }

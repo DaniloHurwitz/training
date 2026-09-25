@@ -40,8 +40,17 @@ function defaultSettings() {
     notifyEnabled: false,      // avisos en este dispositivo
     notifyMinutes: 15,         // aviso antes de cada evento
     notifyExtraMinutes: 30,    // aviso extra, más temprano, para tareas con compu o complejas
+    notifyEarlyMinutes: 60,    // aviso temprano para todos los eventos (0 = no)
     notifyDaily: true,         // resumen del día
     notifyDailyTime: '08:00',
+    notifyEvening: true,       // resumen de mañana, a la noche
+    notifyEveningTime: '21:00',
+    notifyNight: true,         // "no te olvides" la noche anterior a lo que cae de madrugada
+    notifyNightTime: '22:30',
+    notifyWeekly: true,        // resumen de la semana, el primer día de la semana
+    notifyClasses: true,       // "hoy tenés clase de…"
+    notifyExams: true,         // cuenta regresiva de parciales, finales y entregas
+    notifyMoney: true,         // cobros que vencen
     pushTopic: '',             // canal de ntfy para avisos en el teléfono ('' = desactivado)
   };
 }

@@ -39,6 +39,7 @@ function upcomingReminders(fromMs, toMs) {
   const s = DB.settings;
   const base = Math.max(1, Number(s.notifyMinutes) || 15);
   const extra = Number(s.notifyExtraMinutes) || 0;
+  const early = Number(s.notifyEarlyMinutes) || 0;
   const out = [];
   for (const o of getOccurrences(ymd(new Date(fromMs - 864e5)), ymd(new Date(toMs + 864e5)))) {
     const startMs = occStartMs(o);
@@ -46,6 +47,7 @@ function upcomingReminders(fromMs, toMs) {
     const travel = o.calendar === 'faculty' ? Number(o.travelBefore) || 0 : 0;
     const leads = [base];
     if (needsExtraReminder(o) && extra > base) leads.push(extra);
+    if (early > base && !leads.includes(early)) leads.push(early);
     for (const lead of leads) {
       const at = startMs - (lead + travel) * 60000;
       if (at > toMs) continue;
