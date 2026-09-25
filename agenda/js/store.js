@@ -1,5 +1,6 @@
 'use strict';
-/* Estado de la app, persistencia en localStorage, datos de ejemplo y deshacer. */
+/* Estado de la app, persistencia en localStorage, datos de ejemplo, deshacer
+   y registro de cambios para sincronizar entre dispositivos. */
 
 const STORAGE_KEY = 'agendaSemanal:data:v1';
 const UI_KEY = 'agendaSemanal:ui:v1';
@@ -9,6 +10,9 @@ const FACULTY_TYPES = { clase: 'Clase', practico: 'Práctico', parcial: 'Parcial
 const CLIENT_STATUS = { active: 'Activo', paused: 'Pausado', finished: 'Finalizado' };
 const TASK_TYPES = ['Check', 'Traducción', 'Revisión', 'Edición', 'Reunión', 'Sesión', 'Entrega', 'Administrativo'];
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#0e7c86', '#8a5a2b'];
+const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments'];
+/* Preferencias propias de cada dispositivo: no se sincronizan */
+const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme'];
 
 function defaultSettings() {
   return {
@@ -50,6 +54,8 @@ function emptyData() {
     events: [],
     receivables: [],
     payments: [],
+    deleted: {},                       // {colección: {id: fecha de borrado}}
+    stamps: { settings: 0, rates: 0 }, // fecha del último cambio de configuración y tipo de cambio
     meta: { createdAt: new Date().toISOString() },
   };
 }
@@ -85,6 +91,10 @@ function normalizeData(raw) {
     d[k] = Array.isArray(raw[k]) ? raw[k].filter((x) => x && typeof x === 'object' && x.id) : [];
   }
   d.meta = Object.assign(d.meta, raw.meta || {});
+  if (raw.deleted && typeof raw.deleted === 'object') {
+    for (const k of SYNC_COLLECTIONS) if (raw.deleted[k] && typeof raw.deleted[k] === 'object') d.deleted[k] = Object.assign({}, raw.deleted[k]);
+  }
+  d.stamps = Object.assign(d.stamps, raw.stamps || {});
   for (const ev of d.events) {
     ev.calendar = ev.calendar === 'faculty' ? 'faculty' : 'work';
     ev.start = Number(ev.start) || 0;
@@ -112,6 +122,7 @@ function loadDB() {
     DB.meta.demoLoaded = true;
     saveDB();
   }
+  noteStamps(DB);
   try {
     UI = Object.assign(uiDefaults(), JSON.parse(localStorage.getItem(UI_KEY) || '{}'));
     UI.filters = Object.assign(uiDefaults().filters, UI.filters || {});
@@ -141,30 +152,173 @@ function saveUI() {
   } catch (e) { /* no crítico */ }
 }
 
+/* ---------- Registro de cambios (para sincronizar y deshacer) ---------- */
+
+let lastStamp = 0;
+
+function noteStamps(d) {
+  for (const k of SYNC_COLLECTIONS) for (const x of d[k]) lastStamp = Math.max(lastStamp, x._u || 0);
+  lastStamp = Math.max(lastStamp, d.stamps.settings || 0, d.stamps.rates || 0);
+}
+
+/* Marca de tiempo creciente: nunca repite ni retrocede en este dispositivo */
+function nextStamp() {
+  lastStamp = Math.max(Date.now(), lastStamp + 1);
+  return lastStamp;
+}
+
+function entityJSON(o) {
+  const c = Object.assign({}, o);
+  delete c._u;
+  return JSON.stringify(c);
+}
+
+function sharedSettings(settings) {
+  const c = Object.assign({}, settings);
+  for (const k of LOCAL_SETTINGS) delete c[k];
+  return c;
+}
+
+function indexData(d) {
+  const idx = { settings: JSON.stringify(sharedSettings(d.settings)), rates: JSON.stringify(d.rates) };
+  for (const k of SYNC_COLLECTIONS) idx[k] = new Map(d[k].map((x) => [x.id, entityJSON(x)]));
+  return idx;
+}
+
+/* Pone fecha a lo que cambió y deja constancia de lo borrado.
+   Devuelve el cambio inverso (para "Deshacer") o null si no cambió nada compartido. */
+function stampChanges(prev, d) {
+  const now = nextStamp();
+  const inv = { items: {}, settings: null, rates: null };
+  let changed = false;
+  d.deleted = d.deleted || {};
+  d.stamps = d.stamps || { settings: 0, rates: 0 };
+  for (const k of SYNC_COLLECTIONS) {
+    const seen = new Set();
+    const tomb = d.deleted[k] = d.deleted[k] || {};
+    for (const x of d[k]) {
+      seen.add(x.id);
+      const before = prev[k].get(x.id);
+      if (before === entityJSON(x)) continue;
+      x._u = now;
+      delete tomb[x.id];
+      (inv.items[k] = inv.items[k] || {})[x.id] = before === undefined ? null : before;
+      changed = true;
+    }
+    for (const [id, before] of prev[k]) {
+      if (seen.has(id)) continue;
+      tomb[id] = now;
+      (inv.items[k] = inv.items[k] || {})[id] = before;
+      changed = true;
+    }
+  }
+  if (JSON.stringify(sharedSettings(d.settings)) !== prev.settings) { d.stamps.settings = now; inv.settings = prev.settings; changed = true; }
+  if (JSON.stringify(d.rates) !== prev.rates) { d.stamps.rates = now; inv.rates = prev.rates; changed = true; }
+  return changed ? inv : null;
+}
+
+function undoChange(inv) {
+  commit((d) => {
+    for (const [k, items] of Object.entries(inv.items)) {
+      for (const [id, before] of Object.entries(items)) {
+        const i = d[k].findIndex((x) => x.id === id);
+        if (before == null) { if (i >= 0) d[k].splice(i, 1); continue; }
+        const obj = JSON.parse(before);
+        if (i >= 0) d[k][i] = obj; else d[k].push(obj);
+      }
+    }
+    if (inv.settings) Object.assign(d.settings, JSON.parse(inv.settings));
+    if (inv.rates) d.rates = JSON.parse(inv.rates);
+  }, { toast: 'Cambio deshecho' });
+}
+
 /* Aplica un cambio, guarda y vuelve a dibujar. opts.undo: texto del aviso con "Deshacer". */
 function commit(mutator, opts = {}) {
-  const snap = opts.undo ? JSON.stringify(DB) : null;
+  const prev = indexData(DB);
   mutator(DB);
+  const inv = stampChanges(prev, DB);
   invalidateCaches();
   saveDB();
   renderAll();
-  if (opts.undo) {
-    // Solo el último "Deshacer" es válido: los anteriores restaurarían un estado viejo
+  if (inv && typeof syncLocalChange === 'function') syncLocalChange();
+  if (opts.undo && inv) {
+    // Solo el último "Deshacer" es válido
     document.querySelectorAll('#toasts .toast.has-undo').forEach((t) => t.remove());
-    toast(opts.undo, {
-      undo: true,
-      action: 'Deshacer',
-      onAction: () => {
-        DB = normalizeData(JSON.parse(snap));
-        invalidateCaches();
-        saveDB();
-        renderAll();
-        toast('Cambio deshecho');
-      },
-    });
-  } else if (opts.toast) {
-    toast(opts.toast);
+    toast(opts.undo, { undo: true, action: 'Deshacer', onAction: () => undoChange(inv) });
+  } else if (opts.toast || opts.undo) {
+    toast(opts.toast || opts.undo);
   }
+}
+
+/* ---------- Combinar datos de otro dispositivo ---------- */
+
+function canonical(v) {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
+
+/* Lo que se comparte con los otros dispositivos */
+function syncPayload(d) {
+  const p = { v: DATA_VERSION, settings: sharedSettings(d.settings), rates: d.rates, stamps: d.stamps, deleted: d.deleted };
+  for (const k of SYNC_COLLECTIONS) p[k] = d[k];
+  return p;
+}
+
+function payloadDigest(p) {
+  const c = Object.assign({}, p);
+  for (const k of SYNC_COLLECTIONS) c[k] = (p[k] || []).slice().sort((a, b) => (a.id < b.id ? -1 : 1));
+  return canonical(c);
+}
+
+/* Gana la versión con el cambio más reciente; empate: criterio fijo para que todos los dispositivos elijan lo mismo */
+function newerOf(a, b) {
+  const ua = a._u || 0, ub = b._u || 0;
+  if (ua !== ub) return ua > ub ? a : b;
+  return canonical(a) >= canonical(b) ? a : b;
+}
+
+/* Combina los datos recibidos dentro de `d`. Devuelve true si cambió algo. */
+function mergeRemote(d, r) {
+  if (!r || typeof r !== 'object') return false;
+  let changed = false;
+  d.deleted = d.deleted || {};
+  d.stamps = d.stamps || { settings: 0, rates: 0 };
+  for (const k of SYNC_COLLECTIONS) {
+    const theirs = Array.isArray(r[k]) ? r[k].filter((x) => x && typeof x === 'object' && x.id) : [];
+    const tomb = Object.assign({}, d.deleted[k] || {});
+    for (const [id, ts] of Object.entries((r.deleted && r.deleted[k]) || {})) if (!(tomb[id] >= ts)) tomb[id] = ts;
+    const mine = new Map(d[k].map((x) => [x.id, x]));
+    const other = new Map(theirs.map((x) => [x.id, x]));
+    const out = [];
+    for (const id of new Set([...mine.keys(), ...other.keys()])) {
+      const a = mine.get(id), b = other.get(id);
+      let pick = !a ? b : !b ? a : newerOf(a, b);
+      if (tomb[id] != null && tomb[id] >= (pick._u || 0)) pick = null;
+      if (pick) out.push(pick);
+      if (!!a !== !!pick || (a && pick && a !== pick && canonical(a) !== canonical(pick))) changed = true;
+    }
+    d[k] = out;
+    d.deleted[k] = tomb;
+    for (const x of out) lastStamp = Math.max(lastStamp, x._u || 0);
+  }
+  const rs = (r.stamps && r.stamps.settings) || 0, ls = d.stamps.settings || 0;
+  if (r.settings && (rs > ls || (rs === ls && canonical(sharedSettings(r.settings)) > canonical(sharedSettings(d.settings))))) {
+    const next = Object.assign(defaultSettings(), sharedSettings(r.settings));
+    for (const k of LOCAL_SETTINGS) next[k] = d.settings[k];
+    if (canonical(next) !== canonical(d.settings)) changed = true;
+    d.settings = next;
+    d.stamps.settings = rs;
+  }
+  const rr = (r.stamps && r.stamps.rates) || 0, lr = d.stamps.rates || 0;
+  if (r.rates && (rr > lr || (rr === lr && canonical(r.rates) > canonical(d.rates)))) {
+    const next = Object.assign(defaultRates(), r.rates);
+    if (canonical(next) !== canonical(d.rates)) changed = true;
+    d.rates = next;
+    d.stamps.rates = rr;
+  }
+  lastStamp = Math.max(lastStamp, rs, rr);
+  return changed;
 }
 
 /* ---------- Acceso ---------- */

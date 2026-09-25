@@ -548,6 +548,7 @@ function renderSettings() {
   const backupAge = s.lastBackupAt ? (Date.now() - new Date(s.lastBackupAt).getTime()) / 864e5 : Infinity;
   el.innerHTML = sectionHead('Configuración', '', 'Los cambios se guardan automáticamente en este navegador.') + `
     <div class="settings">
+      <section class="block block-wide sync-block" id="syncBlock">${syncBlockHtml()}</section>
       <section class="block">
         <h2>General</h2>
         <div class="grid-2">
@@ -630,7 +631,7 @@ function renderSettings() {
 
       <section class="block">
         <h2>Privacidad</h2>
-        <p class="muted small">Nada sale de tu navegador: no hay servidores, cuentas, analytics ni llamadas a APIs externas. La app funciona sin conexión una vez abierta.</p>
+        <p class="muted small">No hay cuentas, analytics ni servidores que guarden tus datos. Si no vinculás dispositivos, nada sale de este navegador. Si los vinculás, los datos viajan cifrados directamente entre tus dispositivos (WebRTC); el servidor público de PeerJS solo los ayuda a encontrarse y, si la conexión directa no es posible (por ejemplo con datos móviles), un servidor de retransmisión de PeerJS pasa los datos cifrados sin poder leerlos.</p>
         <h3 class="mt">Atajos de teclado</h3>
         ${shortcutsHtml()}
       </section>

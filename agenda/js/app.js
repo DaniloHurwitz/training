@@ -333,16 +333,21 @@ function openMoreMenu() {
   const items = [
     ['income', 'wallet', 'Ingresos'], ['rates', 'exchange', 'Tipo de cambio'], ['settings', 'settings', 'Configuración'],
   ];
+  const st = syncSummary();
   const m = openModal({
     title: 'Más', size: 'sm', className: 'modal-more',
-    body: `<nav class="more-list">${items.map(([s, ic, l]) => `<button data-go="${s}">${icon(ic)}<span>${l}</span>${icon('chevron-right')}</button>`).join('')}
+    body: `<nav class="more-list">
+      <button data-go="sync">${icon('phone')}<span>Sincronizar dispositivos<small><i class="sync-dot is-${st.cls}"></i>${esc(st.text)}</small></span>${icon('chevron-right')}</button>
+      ${items.map(([s, ic, l]) => `<button data-go="${s}">${icon(ic)}<span>${l}</span>${icon('chevron-right')}</button>`).join('')}
       <button data-go="export">${icon('download')}<span>Exportar backup completo</span></button></nav>`,
   });
   m.el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-go]');
     if (!b) return;
     m.close();
-    if (b.dataset.go === 'export') exportJSON(); else showSection(b.dataset.go);
+    if (b.dataset.go === 'export') exportJSON();
+    else if (b.dataset.go === 'sync') handleAction('goto-sync', b);
+    else showSection(b.dataset.go);
   });
 }
 
@@ -394,11 +399,20 @@ async function handleAction(a, el) {
       UI.demoBannerHidden = false; saveUI(); renderDemoBanner();
       break;
     case 'reset-all':
-      if (await confirmDialog({ title: 'Borrar todos los datos', message: 'Se borran <b>todos</b> los eventos, clientes, cobros, ingresos y la configuración de este navegador. Te recomendamos exportar un backup antes.', confirmText: 'Borrar todo', danger: true })) {
+      if (await confirmDialog({ title: 'Borrar todos los datos', message: `Se borran <b>todos</b> los eventos, clientes, cobros, ingresos y la configuración de este navegador.${isPaired() ? ' También se borran en tus dispositivos vinculados.' : ''} Te recomendamos exportar un backup antes.`, confirmText: 'Borrar todo', danger: true })) {
         commit((d) => { const nd = emptyData(); for (const k of Object.keys(d)) delete d[k]; Object.assign(d, nd); }, { undo: 'Todos los datos fueron borrados' });
         applyTheme();
       }
       break;
+    case 'goto-sync':
+      showSection('settings');
+      requestAnimationFrame(() => { const b = document.getElementById('syncBlock'); if (b) b.scrollIntoView({ block: 'start' }); });
+      break;
+    case 'sync-pair': beginPairing(); break;
+    case 'sync-join': joinWithCode((document.getElementById('syncCode') || {}).value); break;
+    case 'sync-now': syncNow(); break;
+    case 'sync-unlink': unlinkDevice(); break;
+    case 'sync-forget': forgetDevice(el.dataset.slot); break;
     case 'export-json': exportJSON(); break;
     case 'import-json': document.getElementById('importFile').click(); break;
     case 'export-csv': exportCSV(document.getElementById('csvRange').value); break;
@@ -606,7 +620,7 @@ function setupEvents() {
   // Sincronización entre pestañas
   window.addEventListener('storage', (e) => {
     if (e.key !== STORAGE_KEY || !e.newValue) return;
-    try { DB = normalizeData(JSON.parse(e.newValue)); invalidateCaches(); applyTheme(); renderAll(); } catch (err) { /* ignorar */ }
+    try { DB = normalizeData(JSON.parse(e.newValue)); noteStamps(DB); invalidateCaches(); applyTheme(); renderAll(); syncLocalChange(); } catch (err) { /* ignorar */ }
   });
 
   mqDark.addEventListener('change', () => { if (DB.settings.theme === 'system') { applyTheme(); renderAll(); } });
@@ -625,6 +639,7 @@ function init() {
   setupPrint();
   if (!storageOk) toast('Este navegador no permite guardar datos (modo privado o almacenamiento bloqueado). Exportá un backup antes de cerrar.', { kind: 'error', duration: 9000 });
   showSection(UI.section || 'calendar');
+  initSync();
 }
 
 document.addEventListener('DOMContentLoaded', init);
