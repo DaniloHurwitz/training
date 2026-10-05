@@ -9,8 +9,9 @@ const DATA_VERSION = 1;
 const FACULTY_TYPES = { clase: 'Clase', practico: 'Práctico', parcial: 'Parcial', final: 'Final', estudio: 'Estudio', otro: 'Otro' };
 const CLIENT_STATUS = { active: 'Activo', paused: 'Pausado', finished: 'Finalizado' };
 const TASK_TYPES = ['Check', 'Traducción', 'Revisión', 'Edición', 'Reunión', 'Sesión', 'Entrega', 'Administrativo'];
+const CALENDARS = ['work', 'faculty', 'training'];
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#0e7c86', '#8a5a2b'];
-const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments'];
+const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments', 'routines', 'workouts'];
 /* Preferencias propias de cada dispositivo: no se sincronizan */
 const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme', 'notifyEnabled'];
 
@@ -34,6 +35,9 @@ function defaultSettings() {
     minGapMinutes: 10,
     workColor: '#44546a',
     facultyColor: '#b5552b',
+    trainingColor: '#2f8f62',
+    weeklyTrainingGoal: 3,     // sesiones de entrenamiento por semana
+    trainingSound: true,       // pitido al terminar el descanso
     showIncomeInEvents: true,
     showTravel: true,
     lastBackupAt: null,
@@ -69,6 +73,8 @@ function emptyData() {
     events: [],
     receivables: [],
     payments: [],
+    routines: [],                      // rutinas de entrenamiento (ejercicios, series, repeticiones)
+    workouts: [],                      // entrenamientos registrados
     deleted: {},                       // {colección: {id: fecha de borrado}}
     stamps: { settings: 0, rates: 0 }, // fecha del último cambio de configuración y tipo de cambio
     pushLog: {},                       // avisos ya programados en ntfy: {id: {at, h, t, topic, del}}
@@ -103,7 +109,7 @@ function normalizeData(raw) {
   if (!raw || typeof raw !== 'object') return d;
   d.settings = Object.assign(defaultSettings(), raw.settings || {});
   d.rates = Object.assign(defaultRates(), raw.rates || {});
-  for (const k of ['clients', 'subjects', 'events', 'receivables', 'payments']) {
+  for (const k of SYNC_COLLECTIONS) {
     d[k] = Array.isArray(raw[k]) ? raw[k].filter((x) => x && typeof x === 'object' && x.id) : [];
   }
   d.meta = Object.assign(d.meta, raw.meta || {});
@@ -119,7 +125,7 @@ function normalizeData(raw) {
 /* Cada evento va en su fecha real: 01:00 del viernes es la madrugada del viernes.
    (La versión anterior guardaba la madrugada como horas 24+ del día previo: se pasa a la misma fecha.) */
 function normalizeEvent(ev) {
-  ev.calendar = ev.calendar === 'faculty' ? 'faculty' : 'work';
+  ev.calendar = CALENDARS.includes(ev.calendar) ? ev.calendar : 'work';
   ev.start = Number(ev.start) || 0;
   ev.end = Number(ev.end) || ev.start + 60;
   if (ev.end <= ev.start) ev.end = ev.start + 15;
@@ -153,6 +159,7 @@ function loadDB() {
     DB.meta.demoLoaded = true;
     saveDB();
   }
+  if (seedDefaultRoutines(DB)) saveDB();
   noteStamps(DB);
   try {
     UI = Object.assign(uiDefaults(), JSON.parse(localStorage.getItem(UI_KEY) || '{}'));

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f6f5f2">
-  <meta name="description" content="Panel personal de organización semanal: trabajo, facultad, ingresos y cobros. Funciona 100% en el navegador.">
+  <meta name="description" content="Panel personal de organización semanal: trabajo, facultad, entrenamiento, ingresos y cobros. Funciona 100% en el navegador.">
   <title>Agenda semanal</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1c1a'/%3E%3Crect x='6' y='17' width='20' height='3' rx='1.5' fill='%23e5383b'/%3E%3C/svg%3E">
   <script>
@@ -67,6 +67,12 @@
     <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-4.5-3.5-6.5-4.5-10.5C12 6.5 11 9 11 11c-1.5-1-2-2.5-2-4C6.5 9 5 11.8 5 15c0 4.3 3 7 7 7z"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
     <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
   </svg>
 
@@ -75,6 +81,7 @@
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div><b>Agenda</b> <span id="brandName" class="muted"></span></div></div>
       <nav class="nav">
         <button data-section="calendar"><svg class="ic"><use href="#i-calendar"/></svg><span>Calendario</span></button>
+        <button data-section="training"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Entrenamiento</span></button>
         <button data-section="summary"><svg class="ic"><use href="#i-chart"/></svg><span>Resumen</span></button>
         <button data-section="clients"><svg class="ic"><use href="#i-users"/></svg><span>Clientes</span></button>
         <button data-section="receivables"><svg class="ic"><use href="#i-inbox"/></svg><span>Cuentas por cobrar</span><b class="badge" data-badge="receivables" hidden></b></button>
@@ -112,7 +119,8 @@
               <div class="seg seg-cal" id="calFilterSeg" role="group" aria-label="Calendarios visibles">
                 <button data-cal="work"><i class="dot dot-work"></i>Trabajo</button>
                 <button data-cal="faculty"><i class="dot dot-fac"></i>Facultad</button>
-                <button data-cal="both">Ambos</button>
+                <button data-cal="training"><i class="dot dot-train"></i><span class="lbl-long">Entrenamiento</span><span class="lbl-short">Entreno</span></button>
+                <button data-cal="both">Todos</button>
               </div>
               <div class="seg seg-view" id="viewSeg" role="group" aria-label="Vista">
                 <button data-view="week" title="Semana (W)">Semana</button>
@@ -152,6 +160,7 @@
         </div>
       </section>
 
+      <section class="section" id="sec-training" aria-label="Entrenamiento" hidden></section>
       <section class="section" id="sec-summary" aria-label="Resumen" hidden></section>
       <section class="section" id="sec-clients" aria-label="Clientes" hidden></section>
       <section class="section" id="sec-receivables" aria-label="Cuentas por cobrar" hidden></section>
@@ -162,6 +171,7 @@
 
     <nav class="tabbar" aria-label="Navegación">
       <button data-section="calendar"><svg class="ic"><use href="#i-calendar"/></svg><span>Agenda</span></button>
+      <button data-section="training"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Entreno</span></button>
       <button data-section="summary"><svg class="ic"><use href="#i-chart"/></svg><span>Resumen</span></button>
       <button data-section="clients"><svg class="ic"><use href="#i-users"/></svg><span>Clientes</span></button>
       <button data-section="receivables"><svg class="ic"><use href="#i-inbox"/></svg><span>Cobros</span><b class="badge" data-badge="receivables" hidden></b></button>
@@ -185,6 +195,7 @@
   <script src="js/calendar.js"></script>
   <script src="js/forms.js"></script>
   <script src="js/sections.js"></script>
+  <script src="js/training.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/notify.js"></script>
   <script src="js/digest.js"></script>

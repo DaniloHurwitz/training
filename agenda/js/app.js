@@ -1,7 +1,7 @@
 'use strict';
 /* Arranque, navegación, acciones, atajos, búsqueda, filtros, tema, exportar/importar e impresión. */
 
-const SECTIONS = ['calendar', 'summary', 'clients', 'receivables', 'income', 'rates', 'settings'];
+const SECTIONS = ['calendar', 'training', 'summary', 'clients', 'receivables', 'income', 'rates', 'settings'];
 
 /* ---------- Render general ---------- */
 
@@ -10,6 +10,7 @@ function renderAll() {
   renderDemoBanner();
   switch (UI.section) {
     case 'calendar': renderCalendar(); break;
+    case 'training': renderTraining(); break;
     case 'summary': renderSummary(); break;
     case 'clients': renderClients(); break;
     case 'receivables': renderReceivables(); break;
@@ -44,6 +45,7 @@ function renderNav() {
   const s = DB.settings;
   document.documentElement.style.setProperty('--work-c', s.workColor);
   document.documentElement.style.setProperty('--fac-c', s.facultyColor);
+  document.documentElement.style.setProperty('--train-c', s.trainingColor);
   document.getElementById('brandName').textContent = s.userName ? `de ${s.userName}` : '';
   const bk = document.getElementById('backupStatus');
   const age = s.lastBackupAt ? (Date.now() - new Date(s.lastBackupAt).getTime()) / 864e5 : Infinity;
@@ -111,7 +113,7 @@ function renderSearchResults() {
       const { style } = eventStyleVars(o);
       return `<li><button data-action="focus-occ" data-date="${o.date}" data-key="${esc(o.key)}">
         <i class="sr-sw ev ${eventVisual(o).cls}" style="${style}"></i>
-        <span class="sr-main"><b>${esc(o.title || 'Sin título')}</b><small>${esc(occSubtitle(o) || (o.calendar === 'work' ? 'Trabajo' : 'Facultad'))}</small></span>
+        <span class="sr-main"><b>${esc(o.title || 'Sin título')}</b><small>${esc(occSubtitle(o) || calLabel(o.calendar))}</small></span>
         <span class="sr-when">${o.isRecurring ? icon('repeat') : ''}${DAY_SHORT[weekdayOf(o.date)]} ${fmtDateShort(o.date)}<small>${fmtTime(o.start)}</small></span>
       </button></li>`;
     }).join('')}</ul>`
@@ -159,11 +161,11 @@ function openFilters() {
   const typeSet = new Map();
   for (const ev of DB.events) {
     const k = occTypeKey(ev);
-    if (!typeSet.has(k)) typeSet.set(k, (ev.calendar === 'work' ? 'Trabajo · ' : 'Facultad · ') + occTypeLabel(ev));
+    if (!typeSet.has(k)) typeSet.set(k, calLabel(ev.calendar) + ' · ' + occTypeLabel(ev));
   }
   const chip = (group, v, label, on, dot) => `<button type="button" class="chip" data-fg="${group}" data-v="${esc(v)}" aria-pressed="${on}">${dot ? `<i class="dot" style="background:${esc(dot)}"></i>` : ''}${esc(label)}</button>`;
   const body = `<div class="filters">
-    <p class="muted small">El selector Trabajo / Facultad / Ambos está en la barra superior. Estos filtros se suman a esa selección.</p>
+    <p class="muted small">El selector Trabajo / Facultad / Entrenamiento / Todos está en la barra superior. Estos filtros se suman a esa selección.</p>
     <h3>Clientes</h3><div class="chips">${sortedClients(true).map((c) => chip('clientIds', c.id, c.name, f.clientIds.includes(c.id), c.color)).join('')}${chip('clientIds', '', 'Sin cliente', f.clientIds.includes(''))}</div>
     <h3>Materias</h3><div class="chips">${DB.subjects.map((s) => chip('subjectIds', s.id, s.name, f.subjectIds.includes(s.id), s.color)).join('') || '<span class="muted small">Sin materias</span>'}</div>
     <h3>Días</h3><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((w) => chip('weekdays', w, DAY_NAMES[w], f.weekdays.includes(w))).join('')}</div>
@@ -235,6 +237,7 @@ function importJSONFile(file) {
     if (!ok) return;
     commit((d) => {
       const nd = normalizeData(raw);
+      seedDefaultRoutines(nd);
       for (const k of Object.keys(d)) delete d[k];
       Object.assign(d, nd);
     }, { undo: 'Datos importados' });
@@ -263,7 +266,7 @@ function exportCSV(kind) {
     const sj = getSubject(o.subjectId);
     lines.push([
       o.date, DAY_NAMES[weekdayOf(o.date)], fmtTime(o.start) + (o.start >= MIN_PER_DAY ? ' (+1)' : ''), fmtTime(o.end) + (o.end > MIN_PER_DAY ? ' (+1)' : ''),
-      (occDuration(o) / 60).toFixed(2), o.calendar === 'work' ? 'Trabajo' : 'Facultad', o.title, clientName(o.clientId), o.project || '', sj ? sj.name : '',
+      (occDuration(o) / 60).toFixed(2), calLabel(o.calendar), o.title, clientName(o.clientId), o.project || '', sj ? sj.name : '',
       occTypeLabel(o), o.calendar === 'work' ? (o.phone ? 'Sí' : 'No') : '', o.calendar === 'work' ? (o.complexity === 'complex' ? 'Compleja' : 'Simple') : '',
       o.calendar === 'work' ? (o.confirmation === 'pending' ? 'Pendiente' : 'Confirmado') : '', o.isCheck ? 'Sí' : '',
       ri ? (ri.billing === 'task' ? 'Por tarea' : 'Por hora') : '', ri && ri.rate != null ? ri.rate : '', ri ? ri.currency : '',
@@ -292,7 +295,7 @@ function setupPrint() {
     document.documentElement.dataset.themeResolved = 'light';
     s.hourHeight = clamp(Math.floor(560 / (visibleMinutes(daySegments()) / 60)), 18, 48);
     const [from, to] = weekRange(UI.date);
-    const cal = UI.calFilter === 'work' ? 'Trabajo' : UI.calFilter === 'faculty' ? 'Facultad' : 'Trabajo y Facultad';
+    const cal = UI.calFilter === 'both' ? 'Todos los calendarios' : calLabel(UI.calFilter);
     document.getElementById('printHead').textContent = `Agenda${s.userName ? ' de ' + s.userName : ''} · ${fmtDateShort(from)} – ${fmtDateShort(to)} ${to.slice(0, 4)} · ${cal}`;
     renderCalendar();
   });
@@ -450,6 +453,14 @@ async function handleAction(a, el) {
     case 'new-subject': openSubjectForm(null); break;
     case 'edit-subject': openSubjectForm(getSubject(id)); break;
     case 'new-event-client': closeDrawer(); openEventForm({ calendar: 'work', clientId: id }); break;
+    // Entrenamiento
+    case 'train-start': startTraining(el.dataset.routine, { occKey: el.dataset.key || null, light: el.dataset.light === '1' }); break;
+    case 'train-schedule': openEventForm({ calendar: 'training', routineId: el.dataset.routine || '' }); break;
+    case 'routine-new': openRoutineEditor(null); break;
+    case 'routine-edit': openRoutineEditor(id); break;
+    case 'workout-open': openWorkoutDetail(id); break;
+    case 'train-resume': resumeTraining(); break;
+    case 'train-discard': discardTrainingDraft(); break;
     case 'new-receivable-client': openReceivableForm(null, { clientId: id }); break;
     // Cobros
     case 'new-receivable': openReceivableForm(null); break;

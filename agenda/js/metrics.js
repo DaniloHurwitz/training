@@ -56,7 +56,19 @@ function occIncome(o) {
   return { amount, currency };
 }
 
+/* Nombre visible de cada calendario */
+function calLabel(cal) { return { work: 'Trabajo', faculty: 'Facultad', training: 'Entrenamiento' }[cal] || 'Trabajo'; }
+
+function calColor(cal) {
+  const s = DB.settings;
+  return cal === 'faculty' ? s.facultyColor : cal === 'training' ? s.trainingColor : s.workColor;
+}
+
 function occColor(o) {
+  if (o.calendar === 'training') {
+    const r = getRoutine(o.routineId);
+    return (r && r.color) || DB.settings.trainingColor;
+  }
   if (o.calendar === 'work') {
     const c = getClient(o.clientId);
     return (c && c.color) || DB.settings.workColor;
@@ -66,14 +78,24 @@ function occColor(o) {
 }
 
 function occSubtitle(o) {
+  if (o.calendar === 'training') {
+    const r = getRoutine(o.routineId);
+    return r ? [r.name !== o.title ? r.name : '', r.focus].filter(Boolean).join(' · ') : 'Sin rutina';
+  }
   if (o.calendar === 'work') return [clientName(o.clientId), o.project].filter(Boolean).join(' · ');
   const s = getSubject(o.subjectId);
   return [s && s.name, FACULTY_TYPES[o.facultyType], o.room].filter(Boolean).join(' · ');
 }
 
-function occTypeKey(o) { return o.calendar === 'work' ? 'w:' + (o.taskType || '') : 'f:' + (o.facultyType || ''); }
+function occTypeKey(o) {
+  if (o.calendar === 'training') return 't:' + (o.routineId || '');
+  return o.calendar === 'work' ? 'w:' + (o.taskType || '') : 'f:' + (o.facultyType || '');
+}
 
-function occTypeLabel(o) { return o.calendar === 'work' ? (o.taskType || 'Tarea') : (FACULTY_TYPES[o.facultyType] || 'Facultad'); }
+function occTypeLabel(o) {
+  if (o.calendar === 'training') { const r = getRoutine(o.routineId); return r ? r.name : 'Sin rutina'; }
+  return o.calendar === 'work' ? (o.taskType || 'Tarea') : (FACULTY_TYPES[o.facultyType] || 'Facultad');
+}
 
 /* Intervalo ocupado incluyendo traslados */
 function occBusyRange(o) {
@@ -104,12 +126,12 @@ function summarize(from, to) {
   const segs = daySegments();
   const nowI = nowInfo();
   const byDay = {};
-  for (const d of days) byDay[d] = { workMin: 0, facultyMin: 0, travelMin: 0, busy: [], incomeMain: 0, count: 0 };
+  for (const d of days) byDay[d] = { workMin: 0, facultyMin: 0, trainingMin: 0, travelMin: 0, busy: [], incomeMain: 0, count: 0 };
   const byClient = new Map();
   const res = {
     from, to, days, occs,
-    workMin: 0, facultyMin: 0, travelMin: 0, occupiedMin: 0, rangeMin: days.length * visibleMinutes(segs), freeMin: 0,
-    checks: 0, workCount: 0, facultyCount: 0, pendingConfirmMin: 0,
+    workMin: 0, facultyMin: 0, trainingMin: 0, travelMin: 0, occupiedMin: 0, rangeMin: days.length * visibleMinutes(segs), freeMin: 0,
+    checks: 0, workCount: 0, facultyCount: 0, trainingCount: 0, pendingConfirmMin: 0,
     incomeByCur: {}, incomeMain: 0, incomePastMain: 0, noRateCount: 0,
     byDay, byClient,
   };
@@ -140,6 +162,8 @@ function summarize(from, to) {
         const ended = o.date < nowI.date || (o.date === nowI.date && o.end <= nowI.min);
         if (ended) res.incomePastMain += m;
       } else res.noRateCount++;
+    } else if (o.calendar === 'training') {
+      res.trainingMin += dur; day.trainingMin += dur; res.trainingCount++;
     } else {
       res.facultyMin += dur; day.facultyMin += dur; res.facultyCount++;
       day.travelMin += (be - o.end) + (o.start - bs);

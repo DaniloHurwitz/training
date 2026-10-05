@@ -56,7 +56,7 @@ function desiredPushes(now) {
     if (r.startMs <= now || r.at < now - LATE_TOLERANCE) continue;
     const t = reminderText(r, Math.max(r.at, now));
     const o = r.o;
-    const tags = o.calendar === 'faculty' ? ['mortar_board'] : [o.phone ? 'iphone' : 'computer'];
+    const tags = o.calendar === 'faculty' ? ['mortar_board'] : o.calendar === 'training' ? ['muscle'] : [o.phone ? 'iphone' : 'computer'];
     const seq = pushSeq('r', [o.eventId, o.origDate.replace(/-/g, ''), r.lead]);
     out.set(seq, { seq, at: r.at, title: t.title, message: t.body, tags, priority: (needsExtraReminder(o) || o.start < 6 * 60) && r.lead === base ? 4 : 3 });
   }
