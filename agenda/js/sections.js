@@ -32,15 +32,15 @@ function legendHtml(items) {
 function loadBarsHtml(sum) {
   const s = DB.settings;
   const days = sum.days;
-  const max = Math.max(4 * 60, ...days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin));
+  const max = Math.max(4 * 60, ...days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin + sum.byDay[d].trainingMin));
   const today = nowInfo().date;
   return `<ul class="loadbars">${days.map((d) => {
     const b = sum.byDay[d];
-    const tot = b.workMin + b.facultyMin;
-    const tip = `${capitalize(fmtDateLong(d))}\nTrabajo: ${fmtDur(b.workMin)}\nFacultad: ${fmtDur(b.facultyMin)}${b.travelMin ? `\nTraslados: ${fmtDur(b.travelMin)}` : ''}\nIngreso: ${fmtMoney(b.incomeMain, mainCur())}`;
+    const tot = b.workMin + b.facultyMin + b.trainingMin;
+    const tip = `${capitalize(fmtDateLong(d))}\nTrabajo: ${fmtDur(b.workMin)}\nFacultad: ${fmtDur(b.facultyMin)}${b.trainingMin ? `\nEntrenamiento: ${fmtDur(b.trainingMin)}` : ''}${b.travelMin ? `\nTraslados: ${fmtDur(b.travelMin)}` : ''}\nIngreso: ${fmtMoney(b.incomeMain, mainCur())}`;
     return `<li class="${d === today ? 'is-today' : ''}" data-tip="${esc(tip)}">
       <button class="lb-day link" data-action="select-day-week" data-date="${d}">${DAY_SHORT[weekdayOf(d)]} ${Number(d.slice(8))}</button>
-      <span class="lb-bar">${b.workMin ? `<i style="width:${(b.workMin / max) * 100}%;background:${s.workColor}"></i>` : ''}${b.facultyMin ? `<i style="width:${(b.facultyMin / max) * 100}%;background:${s.facultyColor}"></i>` : ''}</span>
+      <span class="lb-bar">${b.workMin ? `<i style="width:${(b.workMin / max) * 100}%;background:${s.workColor}"></i>` : ''}${b.facultyMin ? `<i style="width:${(b.facultyMin / max) * 100}%;background:${s.facultyColor}"></i>` : ''}${b.trainingMin ? `<i style="width:${(b.trainingMin / max) * 100}%;background:${s.trainingColor}"></i>` : ''}</span>
       <span class="lb-val">${tot ? fmtDurShort(tot) : '—'}</span>
     </li>`;
   }).join('')}</ul>`;
@@ -50,14 +50,15 @@ function timeSplitHtml(sum) {
   const s = DB.settings;
   const total = sum.rangeMin || 1;
   const free = sum.freeMin;
-  const other = Math.max(0, sum.occupiedMin - sum.workMin - sum.facultyMin - sum.travelMin);
+  const other = Math.max(0, sum.occupiedMin - sum.workMin - sum.facultyMin - sum.trainingMin - sum.travelMin);
   const seg = (min, color, label) => (min > 0 ? `<i style="flex:${min};background:${color}" data-tip="${esc(label + ': ' + fmtDur(min))}"></i>` : '');
   return `<div class="split">
-    <div class="split-bar">${seg(Math.min(sum.workMin, sum.occupiedMin), s.workColor, 'Trabajo')}${seg(sum.facultyMin, s.facultyColor, 'Facultad')}${seg(sum.travelMin, rgba(s.facultyColor, 0.35), 'Traslados')}${seg(other, 'var(--text-3)', 'Otros')}${seg(free, 'var(--track)', 'Libre')}</div>
-    ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad'], ['', rgba(s.facultyColor, 0.35), 'Traslados'], ['', 'var(--track)', 'Libre']])}
+    <div class="split-bar">${seg(Math.min(sum.workMin, sum.occupiedMin), s.workColor, 'Trabajo')}${seg(sum.facultyMin, s.facultyColor, 'Facultad')}${seg(sum.trainingMin, s.trainingColor, 'Entrenamiento')}${seg(sum.travelMin, rgba(s.facultyColor, 0.35), 'Traslados')}${seg(other, 'var(--text-3)', 'Otros')}${seg(free, 'var(--track)', 'Libre')}</div>
+    ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad'], ...(sum.trainingMin ? [['', s.trainingColor, 'Entrenamiento']] : []), ['', rgba(s.facultyColor, 0.35), 'Traslados'], ['', 'var(--track)', 'Libre']])}
     <dl class="kv">
       <div><dt>Trabajo</dt><dd>${fmtDur(sum.workMin)}</dd></div>
       <div><dt>Facultad</dt><dd>${fmtDur(sum.facultyMin)}</dd></div>
+      ${sum.trainingMin ? `<div><dt>Entrenamiento</dt><dd>${fmtDur(sum.trainingMin)}</dd></div>` : ''}
       ${sum.travelMin ? `<div><dt>Traslados</dt><dd>${fmtDur(sum.travelMin)}</dd></div>` : ''}
       <div><dt>Total ocupado</dt><dd>${fmtDur(sum.occupiedMin)}</dd></div>
       <div><dt>Tiempo libre</dt><dd>${fmtDur(free)}</dd></div>
@@ -123,12 +124,13 @@ function renderCalPanel() {
       <h3>Objetivos</h3>
       ${Number(s.weeklyGoalHours) > 0 ? meterHtml('Horas de trabajo', sum.workMin, s.weeklyGoalHours * 60, fmtDur(sum.workMin), `${fmtNum(s.weeklyGoalHours)} h`, goalNote(sum.workMin, s.weeklyGoalHours * 60)) : ''}
       ${incGoal > 0 ? meterHtml('Ingreso semanal', incNow, incGoal, esc(fmtMoney(incNow, goalCur)), esc(fmtMoney(incGoal, goalCur)), `Acumulado (ya realizado): <b>${esc(fmtMoney(incPast, goalCur))}</b>`) : ''}
-      ${!(Number(s.weeklyGoalHours) > 0) && !(incGoal > 0) ? '<p class="muted small">Definí objetivos en Configuración.</p>' : ''}
+      ${trainingMeterHtml(from, to)}
+      ${!(Number(s.weeklyGoalHours) > 0) && !(incGoal > 0) && !(Number(s.weeklyTrainingGoal) > 0) ? '<p class="muted small">Definí objetivos en Configuración.</p>' : ''}
     </section>
     <section class="panel-sec">
       <h3>Carga por día</h3>
       ${loadBarsHtml(sum)}
-      ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad']])}
+      ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad'], ...(sum.trainingMin ? [['', s.trainingColor, 'Entrenamiento']] : [])])}
     </section>
     <section class="panel-sec">
       <h3>Tiempo</h3>
@@ -208,6 +210,7 @@ function renderSummary() {
       <section class="block">
         <h2>Objetivos</h2>
         ${goalHours ? meterHtml('Horas de trabajo', sum.workMin, goalHours * 60, fmtDur(sum.workMin), `${fmtNum(goalHours)} h`, goalNote(sum.workMin, goalHours * 60)) : ''}
+        ${p === 'week' ? trainingMeterHtml(from, to) : ''}
         ${goalIncome ? meterHtml('Ingreso', incGoalCur, goalIncome, esc(fmtMoney(incGoalCur, goalCur)), esc(fmtMoney(goalIncome, goalCur)), `Acumulado (eventos ya realizados): <b>${esc(fmtMoney(convert(sum.incomePastMain, main, goalCur), goalCur))}</b>`) : ''}
         ${!goalHours && !goalIncome ? `<p class="muted small">${p === 'custom' ? 'Los objetivos se muestran por semana o por mes.' : `Sin objetivos ${p === 'month' ? 'mensuales' : 'semanales'}.`} <button class="link" data-action="goto" data-section="settings">Configurar</button></p>` : ''}
         <h3 class="mt">Equivalencias del ingreso estimado</h3>
@@ -219,13 +222,13 @@ function renderSummary() {
         ${clientTableHtml(sum, false)}
       </section>
       <section class="block">
-        <h2>Trabajo, facultad y tiempo libre</h2>
+        <h2>Trabajo, facultad${sum.trainingMin ? ', entrenamiento' : ''} y tiempo libre</h2>
         ${timeSplitHtml(sum)}
       </section>
       <section class="block">
         <h2>Carga por día</h2>
         ${days <= 14 ? loadBarsHtml(sum) : columnsByDayHtml(sum)}
-        ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad']])}
+        ${legendHtml([['', s.workColor, 'Trabajo'], ['', s.facultyColor, 'Facultad'], ...(sum.trainingMin ? [['', s.trainingColor, 'Entrenamiento']] : [])])}
       </section>
       <section class="block block-wide">
         <h2>Alertas${alerts.length ? ` <span class="muted">(${alerts.length})</span>` : ''}</h2>
@@ -236,13 +239,13 @@ function renderSummary() {
 
 function columnsByDayHtml(sum) {
   const s = DB.settings;
-  const max = Math.max(4 * 60, ...sum.days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin));
+  const max = Math.max(4 * 60, ...sum.days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin + sum.byDay[d].trainingMin));
   const h = 120;
   return `<div class="cols" style="--cols-h:${h}px">${sum.days.map((d) => {
     const b = sum.byDay[d];
-    const wh = (b.workMin / max) * h, fh = (b.facultyMin / max) * h;
-    const tip = `${capitalize(fmtDateLong(d))}\nTrabajo: ${fmtDur(b.workMin)}\nFacultad: ${fmtDur(b.facultyMin)}`;
-    return `<div class="col" data-tip="${esc(tip)}"><div class="col-stack">${fh ? `<i style="height:${fh}px;background:${s.facultyColor}"></i>` : ''}${wh ? `<i style="height:${wh}px;background:${s.workColor}"></i>` : ''}</div><span>${Number(d.slice(8))}</span></div>`;
+    const wh = (b.workMin / max) * h, fh = (b.facultyMin / max) * h, th = (b.trainingMin / max) * h;
+    const tip = `${capitalize(fmtDateLong(d))}\nTrabajo: ${fmtDur(b.workMin)}\nFacultad: ${fmtDur(b.facultyMin)}${b.trainingMin ? `\nEntrenamiento: ${fmtDur(b.trainingMin)}` : ''}`;
+    return `<div class="col" data-tip="${esc(tip)}"><div class="col-stack">${th ? `<i style="height:${th}px;background:${s.trainingColor}"></i>` : ''}${fh ? `<i style="height:${fh}px;background:${s.facultyColor}"></i>` : ''}${wh ? `<i style="height:${wh}px;background:${s.workColor}"></i>` : ''}</div><span>${Number(d.slice(8))}</span></div>`;
   }).join('')}</div>`;
 }
 
@@ -586,6 +589,7 @@ function renderSettings() {
         <div class="grid-3">
           <label class="field"><span>Horas por mes <small>(opcional)</small></span><input type="number" min="0" step="0.5" data-set="monthlyGoalHours" data-type="num" value="${s.monthlyGoalHours ?? ''}"></label>
           <label class="field"><span>Ingreso mensual <small>(opcional)</small></span><input type="number" min="0" step="any" data-set="monthlyIncomeGoal" data-type="num" value="${s.monthlyIncomeGoal ?? ''}"></label>
+          <label class="field"><span>Entrenamientos por semana</span><input type="number" min="0" max="14" step="1" data-set="weeklyTrainingGoal" data-type="num" value="${s.weeklyTrainingGoal ?? ''}"></label>
         </div>
       </section>
 
@@ -603,6 +607,7 @@ function renderSettings() {
         <div class="grid-2">
           <label class="field"><span>Calendario Trabajo <small>(eventos sin cliente)</small></span><input type="color" data-set="workColor" value="${esc(s.workColor)}"></label>
           <label class="field"><span>Calendario Facultad <small>(eventos sin materia)</small></span><input type="color" data-set="facultyColor" value="${esc(s.facultyColor)}"></label>
+          <label class="field"><span>Calendario Entrenamiento <small>(rutinas sin color)</small></span><input type="color" data-set="trainingColor" value="${esc(s.trainingColor)}"></label>
         </div>
         <h3 class="mt">Clientes</h3>
         <div class="color-list">${sortedClients(true).map((c) => `<label><input type="color" data-color-client="${c.id}" value="${esc(c.color)}"><span>${esc(c.name)}</span></label>`).join('') || '<p class="muted small">Sin clientes.</p>'}</div>

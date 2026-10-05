@@ -61,7 +61,7 @@ function occSearchText(o) {
   return norm([
     o.title, clientName(o.clientId), o.project, o.taskType, s && s.name, o.commission, o.professor,
     FACULTY_TYPES[o.facultyType], o.room, o.location, o.notes,
-    o.calendar === 'work' ? 'trabajo' : 'facultad',
+    calLabel(o.calendar), o.calendar === 'training' ? occTypeLabel(o) : '',
     o.calendar === 'work' ? (o.phone ? 'telefono celular' : 'computadora') : '',
     o.confirmation === 'pending' ? 'pendiente confirmar' : '',
     o.demo ? 'demo ejemplo' : '',
@@ -94,6 +94,8 @@ function eventVisual(o) {
     return { cls: 'ev-work ev-solid', bg, fg, accent: fg === '#ffffff' ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.35)', ink: fg === '#ffffff' ? '255,255,255' : '0,0,0' };
   }
   const surface = dark ? '#1c1c1e' : '#ffffff';
+  // Entrenamiento: mismo contorno que Facultad, con su propio color
+  if (o.calendar === 'training') return { cls: 'ev-fac ev-train', bg: mixHex(base, surface, dark ? 0.24 : 0.11), fg: dark ? '#ecebe7' : '#22201d', accent: base, ink: dark ? '255,255,255' : '0,0,0' };
   return { cls: 'ev-fac', bg: mixHex(base, surface, dark ? 0.24 : 0.11), fg: dark ? '#ecebe7' : '#22201d', accent: base, ink: dark ? '255,255,255' : '0,0,0' };
 }
 
@@ -260,15 +262,16 @@ function renderGrid() {
   calInnerEl.style.setProperty('--slots', String(60 / (s.slotMinutes || 15)));
   calInnerEl.classList.toggle('is-single', days.length === 1);
 
-  let head = `<div class="cal-corner"><span>${esc(UI.calFilter === 'work' ? 'Trabajo' : UI.calFilter === 'faculty' ? 'Facultad' : '')}</span></div>`;
+  let head = `<div class="cal-corner"><span>${esc(UI.calFilter === 'both' ? '' : calLabel(UI.calFilter))}</span></div>`;
   days.forEach((d, i) => {
     const wd = weekdayOf(d);
     const dayAll = inRange.filter((o) => o.date === d);
     const work = dayAll.filter((o) => o.calendar === 'work').reduce((t, o) => t + occDuration(o), 0);
     const fac = dayAll.filter((o) => o.calendar === 'faculty').reduce((t, o) => t + occDuration(o), 0);
+    const train = dayAll.filter((o) => o.calendar === 'training').reduce((t, o) => t + occDuration(o), 0);
     const nConf = alerts.filter((a) => a.type === 'overlap' && a.date === d).length;
     const outside = dayAll.filter((o) => occPassesFilters(o) && !piecesOf(o, d, segs).length && !(o.end > MIN_PER_DAY && piecesOf(o, addDays(d, 1), segs).length)).length;
-    const loadTitle = `Trabajo ${fmtDur(work)} · Facultad ${fmtDur(fac)}`;
+    const loadTitle = `Trabajo ${fmtDur(work)} · Facultad ${fmtDur(fac)}${train ? ` · Entrenamiento ${fmtDur(train)}` : ''}`;
     head += `<div class="cal-dayhead${d === nowI.date ? ' is-today' : ''}${d < nowI.date ? ' is-past' : ''}" data-date="${d}" style="grid-column:${i + 2}">
       <button class="dh-btn" data-action="open-day" data-date="${d}" title="Ver ${esc(fmtDateLong(d))}">
         <span class="dh-name">${DAY_SHORT[wd]}</span><span class="dh-num">${Number(d.slice(8))}</span>
@@ -276,6 +279,7 @@ function renderGrid() {
       <div class="dh-meta" title="${esc(loadTitle)}">
         ${work ? `<span class="dh-load">${fmtDurShort(work)}</span>` : ''}
         ${fac ? `<span class="dh-load dh-fac">${fmtDurShort(fac)}</span>` : ''}
+        ${train ? `<span class="dh-load dh-train">${fmtDurShort(train)}</span>` : ''}
         ${nConf ? `<span class="dh-warn" title="${nConf} ${nConf === 1 ? 'conflicto' : 'conflictos'} de horario">${icon('alert')}${nConf}</span>` : ''}
         ${outside ? `<button class="dh-out" data-action="out-of-range" data-date="${d}" title="Eventos fuera del horario visible">+${outside}</button>` : ''}
       </div>
@@ -352,8 +356,10 @@ function eventBlockHtml(it, lay, ov, g, ctx) {
   const inc = occIncome(o);
   const showInc = s.showIncomeInEvents && inc && !it.cont;
   const time = `${fmtTime(o.start)}–${fmtTime(o.end)}`;
-  const kind = o.calendar === 'work' ? icon(o.phone ? 'phone' : 'laptop', 'ev-kind') : icon('cap', 'ev-kind');
+  const kind = o.calendar === 'work' ? icon(o.phone ? 'phone' : 'laptop', 'ev-kind') : icon(o.calendar === 'training' ? 'dumbbell' : 'cap', 'ev-kind');
+  const tstate = o.calendar === 'training' ? trainingOccState(o) : '';
   const tags = [
+    tstate === 'done' ? `<span class="ev-done">${icon('check')}Hecho</span>` : '',
     o.isRecurring ? icon('repeat', 'ev-rep') : '',
     o.demo ? '<span class="ev-demo">demo</span>' : '',
   ].join('');
@@ -361,6 +367,7 @@ function eventBlockHtml(it, lay, ov, g, ctx) {
     'ev', v.cls, 'sz-' + size,
     o.confirmation === 'pending' && o.calendar === 'work' ? 'is-pending' : '',
     ctx.past ? 'is-past' : '', ctx.dim ? 'is-dim' : '', ctx.match ? 'is-match' : '',
+    tstate === 'done' ? 'is-done' : tstate === 'missed' ? 'is-missed' : '',
     ov ? 'is-overlap' : '', it.first ? '' : 'clip-top', it.last ? '' : 'clip-bot',
   ].filter(Boolean).join(' ');
 
@@ -520,15 +527,15 @@ function renderDayStrip() {
   let days = dateRange(start, addDays(start, 6));
   if (!s.showWeekend) days = days.filter((d) => { const w = weekdayOf(d); return w >= 1 && w <= 5; });
   const sum = summarize(start, addDays(start, 6));
-  const max = Math.max(6 * 60, ...days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin));
+  const max = Math.max(6 * 60, ...days.map((d) => sum.byDay[d].workMin + sum.byDay[d].facultyMin + sum.byDay[d].trainingMin));
   const today = nowInfo().date;
   strip.innerHTML = `<button class="btn-icon ds-nav" data-action="prev-week" title="Semana anterior" aria-label="Semana anterior">${icon('chevron-left')}</button>
     <div class="ds-days">${days.map((d) => {
       const b = sum.byDay[d];
-      const tot = b.workMin + b.facultyMin;
+      const tot = b.workMin + b.facultyMin + b.trainingMin;
       return `<button class="ds-day${d === UI.date ? ' is-sel' : ''}${d === today ? ' is-today' : ''}" data-action="select-day" data-date="${d}" title="${esc(capitalize(fmtDateLong(d)))}: ${fmtDur(tot)} ocupado">
         <span class="ds-name">${DAY_SHORT[weekdayOf(d)]}</span><b>${Number(d.slice(8))}</b>
-        <i class="ds-load"><i style="width:${Math.round((b.workMin / max) * 100)}%" class="w"></i><i style="width:${Math.round((b.facultyMin / max) * 100)}%" class="f"></i></i>
+        <i class="ds-load"><i style="width:${Math.round((b.workMin / max) * 100)}%" class="w"></i><i style="width:${Math.round((b.facultyMin / max) * 100)}%" class="f"></i><i style="width:${Math.round((b.trainingMin / max) * 100)}%" class="t"></i></i>
       </button>`;
     }).join('')}</div>
     <button class="btn-icon ds-nav" data-action="next-week" title="Semana siguiente" aria-label="Semana siguiente">${icon('chevron-right')}</button>`;
@@ -553,6 +560,7 @@ function renderAgenda() {
   const stats = [
     sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '',
     sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '',
+    sum.trainingMin ? `${fmtDur(sum.trainingMin)} de entrenamiento` : '',
     sum.incomeMain ? fmtMoney(sum.incomeMain, main) : '',
     `${fmtDur(sum.freeMin)} libres`,
   ].filter(Boolean).join(' · ');
@@ -602,7 +610,7 @@ function renderAgenda() {
       <span class="ag-swatch"></span>
       <span class="ag-body">
         <span class="ag-title">${it.cont ? '↳ ' : ''}${esc(o.title || 'Sin título')}
-          ${o.calendar === 'work' ? `<span class="tag">${icon(o.phone ? 'phone' : 'laptop')}${o.phone ? 'Teléfono' : 'Compu'}</span>` : `<span class="tag">${icon('cap')}Facultad</span>`}
+          ${o.calendar === 'work' ? `<span class="tag">${icon(o.phone ? 'phone' : 'laptop')}${o.phone ? 'Teléfono' : 'Compu'}</span>` : o.calendar === 'training' ? `<span class="tag">${icon('dumbbell')}Entrenamiento</span>${trainingOccState(o) === 'done' ? `<span class="tag tag-ok">${icon('check')}Hecho</span>` : ''}` : `<span class="tag">${icon('cap')}Facultad</span>`}
           ${o.confirmation === 'pending' && o.calendar === 'work' ? '<span class="tag tag-warn">Por confirmar</span>' : ''}
           ${o.demo ? '<span class="tag tag-demo">demo</span>' : ''}
         </span>

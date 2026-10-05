@@ -41,6 +41,10 @@ function occLine(o) {
     const extra = [FACULTY_TYPES[o.facultyType], o.room].filter(Boolean).join(' · ');
     bits.push(`🎓 ${o.title}${extra && !o.title.toLowerCase().includes((FACULTY_TYPES[o.facultyType] || '').toLowerCase()) ? ' · ' + extra : o.room ? ' · ' + o.room : ''}`);
     if (+o.travelBefore) bits.push(`salí ${fmtTime(o.start - o.travelBefore)}`);
+  } else if (o.calendar === 'training') {
+    bits.push(`💪 ${o.title}`);
+    const rt = getRoutine(o.routineId);
+    if (rt && rt.name !== o.title) bits.push(rt.name);
   } else {
     bits.push(`${o.phone ? '📱' : '💻'} ${o.title}`);
     if (inc) bits.push(fmtMoney(inc.amount, inc.currency));

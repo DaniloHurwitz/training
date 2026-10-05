@@ -171,7 +171,7 @@ function openEventForm(opts2 = {}) {
     o = deepClone(stripOcc(src));
     if (!editing) o.recurrence = null;
   } else {
-    const cal = opts2.calendar || (UI.calFilter === 'faculty' ? 'faculty' : 'work');
+    const cal = opts2.calendar || (UI.calFilter === 'both' ? 'work' : UI.calFilter);
     const date = opts2.date || UI.date;
     let start = opts2.start;
     if (start == null) {
@@ -184,8 +184,12 @@ function openEventForm(opts2 = {}) {
       clientId: opts2.clientId || '', project: '', taskType: '', billing: 'hourly', rate: null, currency: '',
       isCheck: false, phone: null, complexity: 'simple', confirmation: 'confirmed',
       subjectId: '', commission: '', professor: '', facultyType: 'clase', room: '', travelBefore: 0, travelAfter: 0,
+      routineId: opts2.routineId || '',
       notes: '', location: '', link: '', recurrence: null,
     };
+    // Entrenamiento: la duración arranca con la de la rutina
+    const rt0 = cal === 'training' && opts2.end == null ? getRoutine(o.routineId) : null;
+    if (rt0) o.end = Math.min(o.start + routineMinutes(rt0), MIN_PER_DAY * 2 - 1);
   }
   const st = {
     calendar: o.calendar, phone: o.phone == null ? null : !!o.phone, complexity: o.complexity || 'simple',
@@ -209,6 +213,7 @@ function openEventForm(opts2 = {}) {
     <div class="evf-cal" data-seg="calendar">
       <button type="button" data-v="work" aria-pressed="${st.calendar === 'work'}"><i class="dot" style="background:${s.workColor}"></i>Trabajo</button>
       <button type="button" data-v="faculty" aria-pressed="${st.calendar === 'faculty'}"><i class="dot" style="background:${s.facultyColor}"></i>Facultad</button>
+      <button type="button" data-v="training" aria-pressed="${st.calendar === 'training'}"><i class="dot" style="background:${s.trainingColor}"></i>Entrenamiento</button>
     </div>
     <label class="field"><span>Nombre</span><input name="title" value="${esc(o.title)}" placeholder="Ej.: Disney Spanish Check" maxlength="120" autofocus></label>
 
@@ -219,6 +224,10 @@ function openEventForm(opts2 = {}) {
     <div class="grid-2 only-fac">
       <label class="field"><span>Materia</span><input name="subjectName" value="${esc(subj ? subj.name : '')}" list="dlSubjects" placeholder="Ej.: Anatomía"></label>
       <label class="field"><span>Tipo</span><select name="facultyType">${opts(Object.entries(FACULTY_TYPES), o.facultyType)}</select></label>
+    </div>
+    <div class="only-train">
+      <label class="field"><span>¿Qué rutina toca?</span><div class="with-swatch"><i class="swatch" id="evfRoutineSwatch"></i><select name="routineId">${routineOptions(o.routineId)}</select></div></label>
+      <p class="evf-routine muted small" data-routine-info></p>
     </div>
 
     <div class="evf-when">
@@ -306,7 +315,7 @@ function openEventForm(opts2 = {}) {
   const setCal = (cal) => {
     st.calendar = cal;
     f.dataset.cal = cal;
-    E.title.placeholder = cal === 'work' ? 'Ej.: Disney Spanish Check' : 'Ej.: Anatomía · clase';
+    E.title.placeholder = cal === 'work' ? 'Ej.: Disney Spanish Check' : cal === 'training' ? 'Opcional: se usa el nombre de la rutina' : 'Ej.: Anatomía · clase';
     m.el.querySelectorAll('.evf-cal button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === cal)));
     update();
   };
@@ -339,6 +348,12 @@ function openEventForm(opts2 = {}) {
     update();
   });
   E.rate.addEventListener('input', () => { st.rateTouched = true; update(); });
+  E.routineId.addEventListener('change', () => {
+    const rt = getRoutine(E.routineId.value);
+    const a0 = parseTime(E.start.value);
+    if (rt && !editing && a0 != null) E.end.value = fmtTime(a0 + routineMinutes(rt));
+    update();
+  });
   E.billing.addEventListener('change', () => {
     m.el.querySelector('[data-rate-label]').textContent = E.billing.value === 'task' ? 'Monto por tarea' : 'Tarifa por hora';
     const c = getClient(E.clientId.value);
@@ -393,6 +408,10 @@ function openEventForm(opts2 = {}) {
 
   function update() {
     f.dataset.cal = st.calendar;
+    // Rutina elegida
+    const rt = getRoutine(E.routineId.value);
+    m.el.querySelector('#evfRoutineSwatch').style.background = (rt && rt.color) || s.trainingColor;
+    m.el.querySelector('[data-routine-info]').textContent = rt ? routineSummary(rt) : DB.routines.length ? 'Elegí qué rutina hacés ese día.' : 'Todavía no tenés rutinas: creá una en la sección Entrenamiento.';
     // Tiempo
     const a = parseTime(E.start.value), b = parseTime(E.end.value);
     const hint = m.el.querySelector('[data-hint=time]');
@@ -477,6 +496,7 @@ function openEventForm(opts2 = {}) {
     if (b == null) { setFieldError(f, 'end', 'Hora inválida'); ok = false; }
     if (a != null && b != null && a === b) { setFieldError(f, 'end', 'El fin debe ser distinto del inicio'); ok = false; }
     if (st.calendar === 'work' && st.phone == null) { setFieldError(f, 'phone', 'Indicá si se puede hacer desde el teléfono'); ok = false; }
+    if (st.calendar === 'training' && !E.routineId.value) { setFieldError(f, 'routineId', 'Elegí una rutina'); ok = false; }
     const rec = readRecurrence();
     if (rec && (rec.type === 'days' || (rec.type === 'custom' && rec.unit === 'week')) && !rec.days.length) { ok = false; toast('Elegí al menos un día para la repetición.'); }
     if (rec && rec.end === 'until' && rec.until < data.date) { setFieldError(f, 'until', 'Debe ser posterior al día del evento'); ok = false; }
@@ -500,6 +520,9 @@ function openEventForm(opts2 = {}) {
         isCheck: E.isCheck.checked, phone: st.phone, complexity: st.complexity, confirmation: st.confirmation,
       });
       if (!data.title) data.title = [clientName(data.clientId), data.taskType || data.project].filter(Boolean).join(' · ') || 'Trabajo';
+    } else if (st.calendar === 'training') {
+      data.routineId = E.routineId.value;
+      if (!data.title) data.title = (getRoutine(data.routineId) || {}).name || 'Entrenamiento';
     } else {
       const name = E.subjectName.value.trim();
       let sj = DB.subjects.find((x) => norm(x.name) === norm(name));
@@ -580,8 +603,14 @@ function openEventPopover(occ, anchor) {
   const clashes = getOccurrences(occ.date, occ.date).filter((x) => x.key !== occ.key && x.start < occ.end && occ.start < x.end);
   const rows = [];
   const row = (k, v) => { if (v) rows.push(`<dt>${k}</dt><dd>${v}</dd>`); };
-  row('Calendario', occ.calendar === 'work' ? 'Trabajo' : 'Facultad');
-  if (occ.calendar === 'work') {
+  row('Calendario', calLabel(occ.calendar));
+  const tstate = occ.calendar === 'training' ? trainingOccState(occ) : '';
+  if (occ.calendar === 'training') {
+    const rt = getRoutine(occ.routineId);
+    row('Rutina', rt ? `<span class="dot" style="background:${esc(rt.color || DB.settings.trainingColor)}"></span>${esc(rt.name)}${rt.focus ? ' · ' + esc(rt.focus) : ''}` : '<span class="muted">Sin rutina (fue eliminada)</span>');
+    if (rt) row('Ejercicios', esc(routineSummary(rt)));
+    row('Estado', tstate === 'done' ? `<span class="tag tag-ok">${icon('check')}Hecho</span>` : tstate === 'missed' ? '<span class="tag tag-warn">No registrado</span>' : 'Pendiente');
+  } else if (occ.calendar === 'work') {
     row('Cliente', c ? `<span class="dot" style="background:${esc(c.color)}"></span>${esc(c.name)}${occ.project ? ' · ' + esc(occ.project) : ''}` : (occ.project ? esc(occ.project) : '<span class="muted">Sin cliente</span>'));
     row('Tarifa', ri.rate != null ? `${esc(fmtMoney(ri.rate, ri.currency))}${ri.billing === 'task' ? ' por tarea' : '/h'}` : '<span class="muted">Sin tarifa</span>');
     if (inc) row('Ingreso', `<b>${esc(fmtMoney(inc.amount, inc.currency))}</b> <span class="muted small">≈ ${CURRENCIES.filter((x) => x !== inc.currency).map((x) => esc(fmtMoney(convert(inc.amount, inc.currency, x), x))).join(' · ')}</span>`);
@@ -608,10 +637,14 @@ function openEventPopover(occ, anchor) {
         <p>${esc(capitalize(fmtDateLong(occ.date)))} · ${fmtTime(occ.start)}–${fmtTime(occ.end)}${occ.end > MIN_PER_DAY ? ' <span class="muted">(+1)</span>' : ''} · <b>${fmtDur(occDuration(occ))}</b></p></div>
       <button type="button" class="btn-icon" data-pop="close" aria-label="Cerrar">${icon('x')}</button>
     </div>
-    ${clashes.length ? `<div class="pop-warn">${icon('alert')} <b>Solapamiento</b> con ${clashes.map((x) => `«${esc(x.title || 'Sin título')}» ${fmtTime(x.start)}–${fmtTime(x.end)}${x.calendar !== occ.calendar ? ` (${x.calendar === 'work' ? 'Trabajo' : 'Facultad'})` : ''}`).join(', ')}</div>` : ''}
+    ${clashes.length ? `<div class="pop-warn">${icon('alert')} <b>Solapamiento</b> con ${clashes.map((x) => `«${esc(x.title || 'Sin título')}» ${fmtTime(x.start)}–${fmtTime(x.end)}${x.calendar !== occ.calendar ? ` (${calLabel(x.calendar)})` : ''}`).join(', ')}</div>` : ''}
     <dl class="pop-dl">${rows.join('')}</dl>
     <div class="pop-actions">
-      <button type="button" class="btn btn-primary btn-sm" data-pop="edit">${icon('edit')} Editar</button>
+      ${occ.calendar === 'training' && getRoutine(occ.routineId) ? (tstate === 'done'
+        ? `<button type="button" class="btn btn-sm" data-pop="log">${icon('list')} Ver registro</button>`
+        : `<button type="button" class="btn btn-primary btn-sm" data-pop="train">${icon('dumbbell')} Empezar entrenamiento</button>
+           <button type="button" class="btn btn-sm" data-pop="quick">${icon('check')} Ya lo hice</button>`) : ''}
+      <button type="button" class="btn ${occ.calendar === 'training' ? '' : 'btn-primary '}btn-sm" data-pop="edit">${icon('edit')} Editar</button>
       <button type="button" class="btn btn-sm" data-pop="dup">${icon('copy')} Duplicar</button>
       <button type="button" class="btn btn-sm" data-pop="dupdays">${icon('calendar')} Duplicar a otros días</button>
       <button type="button" class="btn btn-sm btn-ghost btn-danger-text" data-pop="delete">${icon('trash')} Eliminar</button>
@@ -639,12 +672,15 @@ function openEventPopover(occ, anchor) {
     if (!b) return;
     const a = b.dataset.pop;
     if (a === 'close') closePopover();
+    if (a === 'train') { closePopover(); startTraining(occ.routineId, { occ }); }
+    if (a === 'quick') { closePopover(); quickLogOcc(occ); }
+    if (a === 'log') { closePopover(); const w = workoutForOcc(occ); if (w) openWorkoutDetail(w.id); }
     if (a === 'edit') { closePopover(); openEventForm({ occ }); }
     if (a === 'dup') { closePopover(); openEventForm({ duplicateFrom: occ }); }
     if (a === 'dupdays') { closePopover(); openDuplicateDays(occ); }
     if (a === 'delete') deleteOccurrenceFlow(occ);
   };
-  const focusBtn = p.querySelector('[data-pop=edit]');
+  const focusBtn = p.querySelector('[data-pop=train]') || p.querySelector('[data-pop=edit]');
   if (focusBtn && !isMobile()) focusBtn.focus({ preventScroll: true });
 }
 

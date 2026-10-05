@@ -69,6 +69,10 @@ function reminderText(r, nowMs) {
       body: [`${FACULTY_TYPES[o.facultyType] || 'Facultad'} ${time}`, o.room, sj && sj.name !== o.title ? sj.name : '', r.travel ? `traslado ${r.travel} min` : ''].filter(Boolean).join(' · '),
     };
   }
+  if (o.calendar === 'training') {
+    const rt = getRoutine(o.routineId);
+    return { title: `${when}: ${o.title} 💪`, body: [time, rt ? routineSummary(rt) : ''].filter(Boolean).join(' · ') };
+  }
   const where = o.phone ? 'desde el teléfono' : 'necesitás la compu';
   return {
     title: `${when}: ${o.title}${needsExtraReminder(o) && !o.phone ? ' (compu)' : ''}`,
