@@ -146,6 +146,24 @@ function parseTarget(reps) {
   return { low: m ? Number(m[0]) : null, unit: /seg|s\b/i.test(str) ? 'seg' : 'reps' };
 }
 
+/* "10-12 por lado" → 10 a 12; "8 por pierna" → 8 a 8; "30-45 seg" → 30 a 45 */
+function parseRange(reps) {
+  const n = String(reps || '').match(/\d+/g) || [];
+  const low = n.length ? Number(n[0]) : null;
+  return { low, high: n.length > 1 ? Number(n[1]) : low, unit: parseTarget(reps).unit };
+}
+
+const KG_STEP = 2.5;   // lo mínimo que se puede subir con discos de 1,25 por lado
+
+/* "Peso para arrancar: 8 a 10 kg" en la guía → 7,5 kg (múltiplo de 2,5 más cercano al mínimo) */
+function startKg(guide) {
+  const m = String(guide || '').match(/peso para arrancar:\s*(\d+(?:[.,]\d+)?)/i);
+  if (!m) return null;
+  return Math.max(KG_STEP, Math.round(Number(m[1].replace(',', '.')) / KG_STEP) * KG_STEP);
+}
+
+function fmtKg(kg) { return String(Math.round(kg * 100) / 100).replace('.', ','); }
+
 function routineMinutes(rt, light) {
   let sec = 0;
   for (const ex of rt.exercises) {
@@ -258,7 +276,7 @@ function whenLabel(o) {
 function lastSetsFor(exerciseId, name) {
   for (const w of workoutsSorted()) {
     const e = (w.entries || []).find((x) => (exerciseId && x.exerciseId === exerciseId) || norm(x.name) === norm(name));
-    if (e && e.sets.length) return { sets: e.sets, date: w.date };
+    if (e && e.sets.length) return { sets: e.sets, date: w.date, kg: e.kg ?? null, light: !!w.light };
   }
   return null;
 }
@@ -398,7 +416,7 @@ function progressHtml(all) {
       const k = e.exerciseId || norm(e.name);
       if (!map.has(k)) map.set(k, { name: e.name, unit: e.unit || parseTarget(e.target).unit, runs: [] });
       const it = map.get(k);
-      if (it.runs.length < 2) it.runs.push(e.sets);
+      if (it.runs.length < 2) it.runs.push({ sets: e.sets, kg: e.kg || 0 });
     }
   }
   const rows = [...map.values()].slice(0, 10);
@@ -406,10 +424,11 @@ function progressHtml(all) {
   const tot = (a) => a.reduce((t, v) => t + (Number(v) || 0), 0);
   return `<div class="tbl-wrap"><table class="tbl tbl-compact"><thead><tr><th>Ejercicio</th><th>Última</th><th class="num">Cambio</th></tr></thead><tbody>${rows.map((r) => {
     const [a, b] = r.runs;
-    const diff = b ? tot(a) - tot(b) : null;
+    const kgDiff = b ? a.kg - b.kg : 0;
+    const diff = b ? tot(a.sets) - tot(b.sets) : null;
     const unit = r.unit === 'seg' ? ' s' : '';
-    return `<tr><td>${esc(r.name)}</td><td class="t-sets">${a.join(' · ')}${unit}</td>
-      <td class="num">${diff == null ? '<span class="muted">—</span>' : diff > 0 ? `<span class="up">+${diff}${unit}</span>` : diff < 0 ? `<span class="down">${diff}${unit}</span>` : '<span class="muted">igual</span>'}</td></tr>`;
+    return `<tr><td>${esc(r.name)}</td><td class="t-sets">${a.kg ? `${fmtKg(a.kg)} kg × ` : ''}${a.sets.join(' · ')}${unit}</td>
+      <td class="num">${kgDiff > 0 ? `<span class="up">+${fmtKg(kgDiff)} kg</span>` : kgDiff < 0 ? `<span class="down">${fmtKg(kgDiff)} kg</span>` : diff == null ? '<span class="muted">—</span>' : diff > 0 ? `<span class="up">+${diff}${unit}</span>` : diff < 0 ? `<span class="down">${diff}${unit}</span>` : '<span class="muted">igual</span>'}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -531,7 +550,7 @@ function openWorkoutDetail(id) {
   if (!w) return;
   const rows = (w.entries || []).map((e) => {
     const unit = (e.unit || parseTarget(e.target).unit) === 'seg' ? ' s' : '';
-    return `<tr><td>${esc(e.name)}</td><td class="t-sets">${e.sets.join(' · ')}${unit}</td><td class="num muted">${esc(e.target || '')}</td></tr>`;
+    return `<tr><td>${esc(e.name)}</td><td class="t-sets">${e.kg ? `${fmtKg(e.kg)} kg × ` : ''}${e.sets.join(' · ')}${unit}</td><td class="num muted">${esc(e.target || '')}</td></tr>`;
   }).join('');
   const meta = [
     w.routineName,
@@ -620,13 +639,60 @@ function nextIndex(from) {
   return -1;
 }
 
-function defaultValue(e) {
-  const i = e.done.length;
+/* Doble progresión: con el mismo peso sumás repeticiones hasta el tope del rango en todas las series;
+   cuando lo lográs, la próxima vez sube el peso (o el tiempo) y volvés al mínimo del rango. */
+function ensurePlan(e) {
+  if (e.plan) return e.plan;
+  const r = parseRange(e.target);
+  const low = r.low ?? 10, high = r.high ?? low;
+  const step = r.unit === 'seg' ? 5 : 1;
+  const unit = r.unit === 'seg' ? 'seg' : 'reps';
   const last = lastSetsFor(e.exerciseId, e.name);
-  if (last && last.sets[i] != null) return Number(last.sets[i]);
-  if (i > 0) return Number(e.done[i - 1]);
-  return parseTarget(e.target).low ?? 10;
+  const base = startKg(e.guide);
+  const plan = { low, high, step, up: false, base: null, note: '' };
+  if (!last) {
+    e.kg = base;
+    plan.note = base
+      ? `Primera vez: arrancá con ${fmtKg(base)} kg. Hacé las que te salgan con buena técnica, dejando 1 o 2 en reserva.`
+      : `Primera vez: hacé las que te salgan con buena técnica, dejando 1 o 2 en reserva.`;
+  } else {
+    const lastKg = last.kg != null ? last.kg : base;
+    const full = !last.light && last.sets.length >= e.sets && last.sets.every((v) => Number(v) >= high);
+    plan.base = last.sets.map(Number);
+    if (full && lastKg) {
+      e.kg = lastKg + KG_STEP;
+      plan.up = true; plan.base = null;
+      plan.note = `La vez pasada completaste ${high} ${unit} en todas las series con ${fmtKg(lastKg)} kg: hoy subí a ${fmtKg(e.kg)} kg y apuntá a ${low}.`;
+    } else if (full && unit === 'seg') {
+      e.kg = null;
+      plan.note = `Llegaste al tope: hoy sumá 5 segundos por serie.`;
+      plan.extra = 5;
+    } else if (full) {
+      e.kg = null;
+      plan.note = `Llegaste a ${high} en todas las series: probá la versión más difícil (ver «Cómo hacerlo») o seguí sumando repeticiones.`;
+      plan.extra = 1;
+    } else {
+      e.kg = lastKg;
+      const below = last.sets.some((v) => Number(v) < low);
+      const what = last.light ? 'La última fue la versión corta: repetí y completá las series.'
+        : below ? `Apuntá a llegar a ${low} en cada serie.` : `Intentá sumar ${unit === 'seg' ? '5 segundos' : '1 repetición'} por serie, hasta ${high}.`;
+      plan.note = `${lastKg ? `Mismo peso (${fmtKg(lastKg)} kg). ` : ''}${what}${lastKg ? ` Cuando hagas ${high} en todas, sube el peso.` : ''}`;
+    }
+  }
+  e.plan = plan;
+  return plan;
 }
+
+/* Lo que te toca en la serie i */
+function targetFor(e, i) {
+  const p = ensurePlan(e);
+  if (!p.base) return p.low;
+  const prev = p.base[i] ?? p.base[p.base.length - 1];
+  if (p.extra) return prev + p.extra;
+  return Math.max(p.low, Math.min(p.high, prev + p.step));
+}
+
+function defaultValue(e) { return targetFor(e, e.done.length); }
 
 function openTrainingModal() {
   if (trModal) trModal.close();
@@ -685,12 +751,20 @@ function drawTrain() {
     const t = parseTarget(e.target);
     const planned = plannedSets(e);
     const setNo = Math.min(e.done.length + 1, planned);
+    const plan = ensurePlan(e);
     if (TR.value == null) TR.value = defaultValue(e);
     const last = lastSetsFor(e.exerciseId, e.name);
+    const goal = targetFor(e, e.done.length);
     main = `<div class="trn-card">
       <h3 class="trn-name">${esc(e.name)}</h3>
-      <p class="trn-set">Serie <b>${setNo}</b> de ${planned}<span class="muted"> · objetivo ${esc(e.target)}</span></p>
-      ${last ? `<p class="trn-last">La última vez (${esc(relDay(last.date))}): <b>${last.sets.join(' · ')}</b></p>` : '<p class="trn-last muted">Primera vez con este ejercicio.</p>'}
+      <p class="trn-set">Serie <b>${setNo}</b> de ${planned} · <b>hoy apuntá a ${goal} ${t.unit === 'seg' ? 'seg' : 'reps'}</b><span class="muted"> (rango ${esc(e.target)})</span></p>
+      <div class="trn-clock-ctl trn-kg" style="align-items:center">
+        <button type="button" class="btn btn-sm" data-t="kgdec" aria-label="Menos peso">−</button>
+        <b style="min-width:92px;text-align:center">${e.kg ? `${fmtKg(e.kg)} kg` : 'Sin peso'}</b>
+        <button type="button" class="btn btn-sm" data-t="kginc" aria-label="Más peso">+</button>
+      </div>
+      ${last ? `<p class="trn-last">La última vez (${esc(relDay(last.date))}): <b>${last.kg ? `${fmtKg(last.kg)} kg × ` : ''}${last.sets.join(' · ')}</b></p>` : ''}
+      <p class="trn-today">${esc(plan.note)}</p>
       ${e.done.length ? `<p class="trn-today">Hoy: <b>${e.done.join(' · ')}</b></p>` : ''}
       <div class="stepper" role="group" aria-label="${t.unit === 'seg' ? 'Segundos' : 'Repeticiones'} hechas">
         <button type="button" class="btn" data-t="dec" aria-label="Menos">−</button>
@@ -777,6 +851,8 @@ async function onTrainClick(e) {
   switch (a) {
     case 'inc': TR.value = (Number(TR.value) || 0) + step; break;
     case 'dec': TR.value = Math.max(0, (Number(TR.value) || 0) - step); break;
+    case 'kginc': ensurePlan(e0); e0.kg = (Number(e0.kg) || 0) + KG_STEP; break;
+    case 'kgdec': ensurePlan(e0); e0.kg = Math.max(0, (Number(e0.kg) || 0) - KG_STEP) || null; break;
     case 'set': {
       e0.done.push(Number(TR.value) || 0);
       TR.value = null;
@@ -825,7 +901,7 @@ async function finishTraining() {
     id: uid(), date: ymd(now), routineId: TR.routineId, routineName: TR.routineName, occKey: TR.occKey, light: TR.light,
     startedAt: TR.startedAt, finishedAt: now.toISOString(),
     durationMin: Math.max(1, Math.round((now.getTime() - new Date(TR.startedAt).getTime()) / 60000)),
-    entries: TR.entries.filter((e) => e.done.length).map((e) => ({ exerciseId: e.exerciseId, name: e.name, target: e.target, unit: parseTarget(e.target).unit, sets: e.done.slice() })),
+    entries: TR.entries.filter((e) => e.done.length).map((e) => ({ exerciseId: e.exerciseId, name: e.name, target: e.target, unit: parseTarget(e.target).unit, kg: e.kg || null, sets: e.done.slice() })),
   };
   TR = null;
   saveDraft();
