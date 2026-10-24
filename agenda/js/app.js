@@ -457,6 +457,7 @@ async function handleAction(a, el) {
     case 'train-start': startTraining(el.dataset.routine, { occKey: el.dataset.key || null, light: el.dataset.light === '1' }); break;
     case 'train-schedule': openEventForm({ calendar: 'training', routineId: el.dataset.routine || '' }); break;
     case 'routine-new': openRoutineEditor(null); break;
+    case 'solo-new': openSoloForm(); break;
     case 'routine-edit': openRoutineEditor(id); break;
     case 'workout-open': openWorkoutDetail(id); break;
     case 'train-resume': resumeTraining(); break;

@@ -156,13 +156,26 @@ function parseRange(reps) {
 const KG_STEP = 2.5;   // lo mínimo que se puede subir con discos de 1,25 por lado
 
 /* "Peso para arrancar: 8 a 10 kg" en la guía → 7,5 kg (múltiplo de 2,5 más cercano al mínimo) */
-function startKg(guide) {
+function startKg(guide, step = KG_STEP) {
   const m = String(guide || '').match(/peso para arrancar:\s*(\d+(?:[.,]\d+)?)/i);
   if (!m) return null;
-  return Math.max(KG_STEP, Math.round(Number(m[1].replace(',', '.')) / KG_STEP) * KG_STEP);
+  return Math.max(step, Math.round(Number(m[1].replace(',', '.')) / step) * step);
 }
 
+/* Ejercicios con una mancuerna en cada mano: el peso que se anota es la suma de las dos.
+   Los discos van de a pares, así que el salto equilibrado es de 5 en total (2,5 por mano). */
+const TWO_DB_IDS = new Set(['ex-mp-rumano', 'ex-mp-press-piso', 'ex-mp-zancadas', 'ex-mp-curl', 'ex-mp-bulgara']);
+function exDb(exerciseId) {
+  for (const r of DB.routines) {
+    const ex = r.exercises.find((x) => x.id === exerciseId);
+    if (ex && ex.dumbbells != null) return ex.dumbbells === 2;
+  }
+  return TWO_DB_IDS.has(exerciseId);
+}
+function kgStep(exerciseId) { return exDb(exerciseId) ? 5 : KG_STEP; }
+
 function fmtKg(kg) { return String(Math.round(kg * 100) / 100).replace('.', ','); }
+function kgLabel(kg, db) { return `${fmtKg(kg)} kg${db ? ` (${fmtKg(kg / 2)} c/u)` : ''}`; }
 
 function routineMinutes(rt, light) {
   let sec = 0;
@@ -184,6 +197,11 @@ function workoutsSorted() {
   return DB.workouts.slice().sort((a, b) => b.date.localeCompare(a.date) || String(b.finishedAt || '').localeCompare(String(a.finishedAt || '')));
 }
 
+/* Un «ejercicio suelto» (solo:true) no es una sesión: no cuenta para la semana, la racha ni el calendario, ni alimenta la progresión */
+const isSession = (w) => !w.solo;
+
+const setsLabel = (n) => `${n} ${n === 1 ? 'serie' : 'series'}`;
+
 function workoutSets(w) { return (w.entries || []).reduce((t, e) => t + e.sets.length, 0); }
 
 function occEnded(o) {
@@ -193,8 +211,8 @@ function occEnded(o) {
 
 /* Registro que corresponde a un entrenamiento agendado: el vinculado, o uno suelto del mismo día */
 function workoutForOcc(o) {
-  return DB.workouts.find((w) => w.occKey === o.key)
-    || DB.workouts.find((w) => !w.occKey && w.date === o.date)
+  return DB.workouts.find((w) => isSession(w) && w.occKey === o.key)
+    || DB.workouts.find((w) => isSession(w) && !w.occKey && w.date === o.date)
     || null;
 }
 
@@ -216,15 +234,16 @@ function findLinkableOcc(routineId) {
   return list.find((o) => o.routineId === routineId) || list[0] || null;
 }
 
-function workoutsBetween(from, to) { return DB.workouts.filter((w) => w.date >= from && w.date <= to); }
+function workoutsBetween(from, to) { return DB.workouts.filter((w) => isSession(w) && w.date >= from && w.date <= to); }
 
 function trainingGoal() { return Math.max(0, Number(DB.settings.weeklyTrainingGoal) || 0); }
 
 /* Semanas seguidas cumpliendo el objetivo (la actual cuenta solo si ya se cumplió) */
 function trainingStreak() {
   const goal = trainingGoal();
-  if (!goal || !DB.workouts.length) return 0;
-  const first = DB.workouts.reduce((a, w) => (w.date < a ? w.date : a), DB.workouts[0].date);
+  const sess = DB.workouts.filter(isSession);
+  if (!goal || !sess.length) return 0;
+  const first = sess.reduce((a, w) => (w.date < a ? w.date : a), sess[0].date);
   let [from, to] = weekRange(nowInfo().date);
   let streak = workoutsBetween(from, to).length >= goal ? 1 : 0;
   for (let i = 0; i < 104; i++) {
@@ -275,6 +294,7 @@ function whenLabel(o) {
 /* Últimas series registradas de un ejercicio (sin contar la sesión en curso) */
 function lastSetsFor(exerciseId, name) {
   for (const w of workoutsSorted()) {
+    if (!isSession(w)) continue;
     const e = (w.entries || []).find((x) => (exerciseId && x.exerciseId === exerciseId) || norm(x.name) === norm(name));
     if (e && e.sets.length) return { sets: e.sets, date: w.date, kg: e.kg ?? null, light: !!w.light };
   }
@@ -291,13 +311,15 @@ function renderTraining() {
   const goal = trainingGoal();
   const weekDone = workoutsBetween(wf, wt).length;
   const all = workoutsSorted();
-  const lastW = all[0] || null;
+  const sess = all.filter(isSession);
+  const lastW = sess[0] || null;
   const next = nextPlanned();
   const miss = missedRun();
   const draft = loadDraft();
   const routines = sortedRoutines();
 
-  const actions = `<button class="btn" data-action="routine-new">${icon('plus')} Nueva rutina</button>
+  const actions = `<button class="btn" data-action="solo-new">${icon('plus')} Ejercicio suelto</button>
+    <button class="btn" data-action="routine-new">${icon('plus')} Nueva rutina</button>
     <button class="btn" data-action="train-schedule">${icon('calendar')} Agendar entrenamiento</button>`;
 
   // Sesión sin terminar
@@ -345,7 +367,7 @@ function renderTraining() {
   // Semana día por día
   const days = dateRange(wf, wt);
   const weekHtml = `<ol class="tr-week">${days.map((d) => {
-    const ws = DB.workouts.filter((w) => w.date === d);
+    const ws = DB.workouts.filter((w) => isSession(w) && w.date === d);
     const planned = trainingOccs(d, d);
     let st = 'rest', label = '';
     if (ws.length) { st = 'done'; label = ws[0].routineName || 'Entrenamiento'; }
@@ -367,7 +389,7 @@ function renderTraining() {
     <div class="kpi"><span>Esta semana</span><b>${weekDone}${goal ? ` <small class="muted">/ ${goal}</small>` : ''}</b><small>${goal ? (weekDone >= goal ? 'Objetivo cumplido' : `Faltan ${goal - weekDone}`) : 'Sin objetivo semanal'}</small></div>
     <div class="kpi"><span>Racha</span><b>${trainingStreak()} sem.</b><small>semanas seguidas cumpliendo</small></div>
     <div class="kpi"><span>Último entrenamiento</span><b>${lastW ? esc(capitalize(relDay(lastW.date))) : '—'}</b><small>${lastW ? esc(lastW.routineName || '') : 'Todavía no registraste ninguno'}</small></div>
-    <div class="kpi"><span>Total</span><b>${DB.workouts.length}</b><small>${DB.workouts.length === 1 ? 'sesión registrada' : 'sesiones registradas'}</small></div>
+    <div class="kpi"><span>Total</span><b>${sess.length}</b><small>${sess.length === 1 ? 'sesión registrada' : 'sesiones registradas'}</small></div>
   </div>`;
 
   const routinesHtml = routines.length ? `<ul class="rt-list">${routines.map((r) => {
@@ -386,8 +408,8 @@ function renderTraining() {
 
   const histHtml = all.length ? `<ul class="mini-list tr-hist">${all.slice(0, 12).map((w) => `<li><button class="link" data-action="workout-open" data-id="${esc(w.id)}">
       <b>${esc(capitalize(fmtDateLong(w.date)).replace(/ de \w+$/, ''))}</b>
-      <span>${esc(w.routineName || 'Entrenamiento')}${w.light ? ' <span class="tag">Corta</span>' : ''}${w.quick ? ' <span class="tag">Sin detalle</span>' : ''}</span>
-      <em>${w.quick ? 'marcado como hecho' : `${workoutSets(w)} series${w.durationMin ? ` · ${w.durationMin} min` : ''}`}</em>
+      <span>${esc(w.solo ? `Suelto: ${((w.entries || [])[0] || {}).name || 'ejercicio'}` : (w.routineName || 'Entrenamiento'))}${w.light ? ' <span class="tag">Corta</span>' : ''}${w.quick ? ' <span class="tag">Sin detalle</span>' : ''}</span>
+      <em>${w.quick ? 'marcado como hecho' : `${setsLabel(workoutSets(w))}${w.durationMin ? ` · ${w.durationMin} min` : ''}`}</em>
     </button></li>`).join('')}</ul>${all.length > 12 ? `<p class="muted small">y ${all.length - 12} más.</p>` : ''}`
     : '<p class="muted small">Cuando termines un entrenamiento aparece acá, con las repeticiones de cada serie.</p>';
 
@@ -402,7 +424,7 @@ function renderTraining() {
     <div class="sum-grid">
       <section class="block block-wide"><h2>Rutinas</h2>${routinesHtml}</section>
       <section class="block"><h2>Historial</h2>${histHtml}</section>
-      <section class="block"><h2>Progreso</h2>${progressHtml(all)}</section>
+      <section class="block"><h2>Progreso</h2>${progressHtml(sess)}</section>
     </div>
     <p class="muted small">Objetivo semanal y color en <button class="link" data-action="goto" data-section="settings">Configuración</button>.</p>`;
 }
@@ -414,7 +436,7 @@ function progressHtml(all) {
     for (const e of w.entries || []) {
       if (!e.sets.length) continue;
       const k = e.exerciseId || norm(e.name);
-      if (!map.has(k)) map.set(k, { name: e.name, unit: e.unit || parseTarget(e.target).unit, runs: [] });
+      if (!map.has(k)) map.set(k, { name: e.name, exId: e.exerciseId, unit: e.unit || parseTarget(e.target).unit, runs: [] });
       const it = map.get(k);
       if (it.runs.length < 2) it.runs.push({ sets: e.sets, kg: e.kg || 0 });
     }
@@ -427,7 +449,7 @@ function progressHtml(all) {
     const kgDiff = b ? a.kg - b.kg : 0;
     const diff = b ? tot(a.sets) - tot(b.sets) : null;
     const unit = r.unit === 'seg' ? ' s' : '';
-    return `<tr><td>${esc(r.name)}</td><td class="t-sets">${a.kg ? `${fmtKg(a.kg)} kg × ` : ''}${a.sets.join(' · ')}${unit}</td>
+    return `<tr><td>${esc(r.name)}</td><td class="t-sets">${a.kg ? `${kgLabel(a.kg, exDb(r.exId))} × ` : ''}${a.sets.join(' · ')}${unit}</td>
       <td class="num">${kgDiff > 0 ? `<span class="up">+${fmtKg(kgDiff)} kg</span>` : kgDiff < 0 ? `<span class="down">${fmtKg(kgDiff)} kg</span>` : diff == null ? '<span class="muted">—</span>' : diff > 0 ? `<span class="up">+${diff}${unit}</span>` : diff < 0 ? `<span class="down">${diff}${unit}</span>` : '<span class="muted">igual</span>'}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
@@ -455,6 +477,7 @@ function openRoutineEditor(id) {
         <label class="field"><span>Repeticiones o tiempo</span><input name="ex-reps" value="${esc(ex.reps)}" placeholder="10-12 o 30 seg"></label>
         <label class="field"><span>Descanso (seg)</span><input name="ex-rest" type="number" min="0" max="600" step="5" inputmode="numeric" value="${Number(ex.rest) || 0}"></label>
       </div>
+      <label class="rtf-db" style="display:flex;align-items:center;gap:8px;margin:2px 0 8px"><input type="checkbox" name="ex-db" ${(ex.dumbbells != null ? ex.dumbbells === 2 : TWO_DB_IDS.has(ex.id)) ? 'checked' : ''}><span>Una mancuerna en cada mano <small class="muted">(el peso es el total y sube de a 5)</small></span></label>
       <label class="field"><span>Cómo hacerlo <small>(opcional)</small></span><textarea name="ex-guide" rows="2">${esc(ex.guide)}</textarea></label>
     </li>`;
 
@@ -488,6 +511,7 @@ function openRoutineEditor(id) {
       ex.reps = q('ex-reps').value.trim();
       ex.rest = clamp(parseInt(q('ex-rest').value, 10) || 0, 0, 600);
       ex.guide = q('ex-guide').value.trim();
+      ex.dumbbells = q('ex-db').checked ? 2 : 1;
     });
   };
   const est = () => { read(); f.querySelector('[data-est]').textContent = r.exercises.some((x) => x.name) ? `· unos ${routineMinutes({ exercises: r.exercises.filter((x) => x.name) })} min` : ''; };
@@ -550,24 +574,107 @@ function openWorkoutDetail(id) {
   if (!w) return;
   const rows = (w.entries || []).map((e) => {
     const unit = (e.unit || parseTarget(e.target).unit) === 'seg' ? ' s' : '';
-    return `<tr><td>${esc(e.name)}</td><td class="t-sets">${e.kg ? `${fmtKg(e.kg)} kg × ` : ''}${e.sets.join(' · ')}${unit}</td><td class="num muted">${esc(e.target || '')}</td></tr>`;
+    return `<tr><td>${esc(e.name)}</td><td class="t-sets">${e.kg ? `${kgLabel(e.kg, exDb(e.exerciseId))} × ` : ''}${e.sets.join(' · ')}${unit}</td><td class="num muted">${esc(e.target || '')}</td></tr>`;
   }).join('');
   const meta = [
     w.routineName,
     w.durationMin ? `${w.durationMin} min` : '',
-    w.quick ? 'marcado como hecho, sin series' : `${workoutSets(w)} series`,
+    w.quick ? 'marcado como hecho, sin series' : setsLabel(workoutSets(w)),
     w.light ? 'versión corta' : '',
   ].filter(Boolean).map(esc).join(' · ');
   const m = openModal({
     title: capitalize(fmtDateLong(w.date, true)), size: 'md',
     body: `<p class="muted">${meta}</p>
       ${rows ? `<div class="tbl-wrap"><table class="tbl tbl-compact"><thead><tr><th>Ejercicio</th><th>Series</th><th class="num">Objetivo</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}`,
-    footer: `<button type="button" class="btn btn-ghost btn-danger-text" data-del>${icon('trash')} Eliminar registro</button><span class="spacer"></span><button type="button" class="btn btn-primary" data-ok>Cerrar</button>`,
+    footer: `<button type="button" class="btn btn-ghost btn-danger-text" data-del>${icon('trash')} Eliminar registro</button><span class="spacer"></span>${rows ? `<button type="button" class="btn" data-edit>${icon('edit')} Editar</button>` : ''}<button type="button" class="btn btn-primary" data-ok>Cerrar</button>`,
   });
   m.el.querySelector('[data-ok]').addEventListener('click', () => m.close());
+  const ed = m.el.querySelector('[data-edit]');
+  if (ed) ed.addEventListener('click', () => { m.close(); openWorkoutEdit(id); });
   m.el.querySelector('[data-del]').addEventListener('click', () => {
     m.close();
     commit((d) => { d.workouts = d.workouts.filter((x) => x.id !== id); }, { undo: 'Registro eliminado' });
+  });
+}
+
+/* Corregir el peso o las repeticiones de un entrenamiento ya guardado */
+function openWorkoutEdit(id) {
+  const w = DB.workouts.find((x) => x.id === id);
+  if (!w || !(w.entries || []).length) return;
+  const row = (e, i) => {
+    const sec = (e.unit || parseTarget(e.target).unit) === 'seg';
+    return `<li class="rtf-ex" data-i="${i}">
+      <b>${esc(e.name)}</b>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">
+        <label class="field"><span>Peso (kg)</span><input name="kg" inputmode="decimal" value="${e.kg ? fmtKg(e.kg) : ''}" placeholder="Sin peso"></label>
+        <label class="field"><span>${sec ? 'Segundos' : 'Repeticiones'} por serie</span><input name="sets" inputmode="numeric" value="${esc(e.sets.join(' '))}" placeholder="Ej.: 10 10 9"></label>
+      </div></li>`;
+  };
+  const body = `<form class="rtf" novalidate autocomplete="off">
+      <p class="muted small">Dos mancuernas: el peso es la suma de las dos. Las series se separan con un espacio.</p>
+      <ol class="rtf-list">${w.entries.map(row).join('')}</ol></form>`;
+  const m = openModal({
+    title: `Editar · ${capitalize(fmtDateLong(w.date, true))}`, body, size: 'md', dismissible: false,
+    footer: `<span class="spacer"></span><button type="button" class="btn" data-act="cancel">Cancelar</button><button type="button" class="btn btn-primary" data-act="save">Guardar cambios</button>`,
+  });
+  m.el.querySelector('[data-act=cancel]').addEventListener('click', () => m.close());
+  m.el.querySelector('[data-act=save]').addEventListener('click', () => {
+    const upd = [];
+    for (const li of m.el.querySelectorAll('.rtf-ex')) {
+      const kg = Number(String(li.querySelector('[name=kg]').value).replace(',', '.'));
+      const sets = li.querySelector('[name=sets]').value.split(/[^\d]+/).filter(Boolean).map(Number);
+      if (!sets.length) { toast('Cada ejercicio necesita al menos una serie.', { kind: 'error' }); li.querySelector('[name=sets]').focus(); return; }
+      upd.push({ kg: kg > 0 ? kg : null, sets });
+    }
+    m.close();
+    commit((d) => {
+      const x = d.workouts.find((y) => y.id === id);
+      if (x) x.entries.forEach((e, i) => { if (upd[i]) { e.kg = upd[i].kg; e.sets = upd[i].sets; } });
+    }, { undo: 'Entrenamiento editado' });
+  });
+}
+
+/* Un solo ejercicio (por ejemplo, flexiones al fallo): queda en el historial, pero no cuenta como sesión ni cambia la progresión */
+function openSoloForm() {
+  const known = new Map();
+  DB.routines.forEach((r) => r.exercises.forEach((ex) => { if (!known.has(ex.id)) known.set(ex.id, ex); }));
+  const list = [...known.values()].sort((a, b) => a.name.localeCompare(b.name, 'es')).map((ex) => [ex.id, ex.name]);
+  list.push(['', 'Otro (escribir el nombre)']);
+  const today = nowInfo().date;
+  const body = `<form class="rtf" novalidate autocomplete="off">
+      <label class="field"><span>Ejercicio</span><select name="ex">${opts(list, list[0][0])}</select></label>
+      <label class="field" data-other hidden><span>Nombre</span><input name="name" maxlength="80" placeholder="Ej.: Dominadas"></label>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">
+        <label class="field"><span>Peso (kg)</span><input name="kg" inputmode="decimal" placeholder="Sin peso"></label>
+        <label class="field"><span>Repeticiones por serie</span><input name="sets" inputmode="numeric" placeholder="Ej.: 15 o 10 9 8"></label>
+      </div>
+      <label class="field"><span>Fecha</span><input name="date" type="date" value="${today}" max="${today}"></label>
+      <p class="muted small">Queda en el historial, pero no suma a las sesiones de la semana ni cambia el peso que te sugiere la rutina.</p>
+    </form>`;
+  const m = openModal({
+    title: 'Ejercicio suelto', body, size: 'md', dismissible: false,
+    footer: `<span class="spacer"></span><button type="button" class="btn" data-act="cancel">Cancelar</button><button type="button" class="btn btn-primary" data-act="save">Guardar</button>`,
+  });
+  const f = m.el.querySelector('form');
+  const other = f.querySelector('[data-other]');
+  f.elements.ex.addEventListener('change', () => { other.hidden = f.elements.ex.value !== ''; if (!other.hidden) f.elements.name.focus(); });
+  m.el.querySelector('[data-act=cancel]').addEventListener('click', () => m.close());
+  m.el.querySelector('[data-act=save]').addEventListener('click', () => {
+    const exId = f.elements.ex.value;
+    const ex = known.get(exId) || null;
+    const name = ex ? ex.name : f.elements.name.value.trim();
+    const sets = f.elements.sets.value.split(/[^\d]+/).filter(Boolean).map(Number);
+    const kg = Number(String(f.elements.kg.value).replace(',', '.'));
+    if (!name) { toast('Poné el nombre del ejercicio.', { kind: 'error' }); f.elements.name.focus(); return; }
+    if (!sets.length) { toast('Anotá al menos una serie.', { kind: 'error' }); f.elements.sets.focus(); return; }
+    const date = f.elements.date.value && f.elements.date.value <= today ? f.elements.date.value : today;
+    const w = {
+      id: uid(), date, routineId: '', routineName: 'Ejercicio suelto', occKey: null, light: false, solo: true,
+      finishedAt: new Date().toISOString(),
+      entries: [{ exerciseId: ex ? ex.id : null, name, target: '', unit: ex ? parseTarget(ex.reps).unit : 'reps', kg: kg > 0 ? kg : null, sets }],
+    };
+    m.close();
+    commit((d) => { d.workouts.push(w); }, { undo: 'Ejercicio guardado' });
   });
 }
 
@@ -648,21 +755,22 @@ function ensurePlan(e) {
   const step = r.unit === 'seg' ? 5 : 1;
   const unit = r.unit === 'seg' ? 'seg' : 'reps';
   const last = lastSetsFor(e.exerciseId, e.name);
-  const base = startKg(e.guide);
+  const kgs = kgStep(e.exerciseId), db = exDb(e.exerciseId);
+  const base = startKg(e.guide, kgs);
   const plan = { low, high, step, up: false, base: null, note: '' };
   if (!last) {
     e.kg = base;
     plan.note = base
-      ? `Primera vez: arrancá con ${fmtKg(base)} kg. Hacé las que te salgan con buena técnica, dejando 1 o 2 en reserva.`
+      ? `Primera vez: arrancá con ${kgLabel(base, db)}. Hacé las que te salgan con buena técnica, dejando 1 o 2 en reserva.`
       : `Primera vez: hacé las que te salgan con buena técnica, dejando 1 o 2 en reserva.`;
   } else {
     const lastKg = last.kg != null ? last.kg : base;
     const full = !last.light && last.sets.length >= e.sets && last.sets.every((v) => Number(v) >= high);
     plan.base = last.sets.map(Number);
     if (full && lastKg) {
-      e.kg = lastKg + KG_STEP;
+      e.kg = lastKg + kgs;
       plan.up = true; plan.base = null;
-      plan.note = `La vez pasada completaste ${high} ${unit} en todas las series con ${fmtKg(lastKg)} kg: hoy subí a ${fmtKg(e.kg)} kg y apuntá a ${low}.`;
+      plan.note = `La vez pasada completaste ${high} ${unit} en todas las series con ${kgLabel(lastKg, db)}: hoy subí a ${kgLabel(e.kg, db)} y apuntá a ${low}.`;
     } else if (full && unit === 'seg') {
       e.kg = null;
       plan.note = `Llegaste al tope: hoy sumá 5 segundos por serie.`;
@@ -676,7 +784,7 @@ function ensurePlan(e) {
       const below = last.sets.some((v) => Number(v) < low);
       const what = last.light ? 'La última fue la versión corta: repetí y completá las series.'
         : below ? `Apuntá a llegar a ${low} en cada serie.` : `Intentá sumar ${unit === 'seg' ? '5 segundos' : '1 repetición'} por serie, hasta ${high}.`;
-      plan.note = `${lastKg ? `Mismo peso (${fmtKg(lastKg)} kg). ` : ''}${what}${lastKg ? ` Cuando hagas ${high} en todas, sube el peso.` : ''}`;
+      plan.note = `${lastKg ? `Mismo peso (${kgLabel(lastKg, db)}). ` : ''}${what}${lastKg ? ` Cuando hagas ${high} en todas, sube el peso.` : ''}`;
     }
   }
   e.plan = plan;
@@ -735,7 +843,19 @@ function drawTrain() {
     </div>`;
   } else if (TR.phase === 'rest') {
     const nx = TR.entries[TR.after];
-    const nxText = nx ? `${nx.name} · serie ${Math.min(nx.done.length + 1, plannedSets(nx))} de ${plannedSets(nx)}` : '';
+    let nxHtml = '';
+    if (nx) {
+      const np = ensurePlan(nx);
+      const nt = parseTarget(nx.target);
+      const same = nx === TR.entries[TR.idx];
+      nxHtml = `<div class="trn-next">
+        <p class="trn-label">${same ? 'Sigue el mismo ejercicio' : 'Preparate'}</p>
+        <b class="trn-next-name">${esc(nx.name)}</b>
+        <p class="trn-next-kg">${nx.kg ? kgLabel(nx.kg, exDb(nx.exerciseId)) : 'Sin peso'}</p>
+        <p class="muted small">Serie ${Math.min(nx.done.length + 1, plannedSets(nx))} de ${plannedSets(nx)} · apuntá a ${targetFor(nx, nx.done.length)} ${nt.unit === 'seg' ? 'seg' : 'reps'}</p>
+        ${same ? '' : `<p class="muted small">${esc(np.note)}</p>`}
+      </div>`;
+    }
     main = `<div class="trn-card trn-rest">
       <p class="trn-label">Descanso</p>
       <div class="trn-clock" data-clock>${fmtClock((TR.restEnd - Date.now()) / 1000)}</div>
@@ -744,7 +864,7 @@ function drawTrain() {
         <button type="button" class="btn" data-t="more">+10 s</button>
       </div>
       <button type="button" class="btn btn-primary trn-cta" data-t="skiprest">Seguir</button>
-      ${nxText ? `<p class="muted small">Sigue: ${esc(nxText)}</p>` : ''}
+      ${nxHtml}
     </div>`;
   } else {
     const e = TR.entries[TR.idx];
@@ -760,10 +880,10 @@ function drawTrain() {
       <p class="trn-set">Serie <b>${setNo}</b> de ${planned} · <b>hoy apuntá a ${goal} ${t.unit === 'seg' ? 'seg' : 'reps'}</b><span class="muted"> (rango ${esc(e.target)})</span></p>
       <div class="trn-clock-ctl trn-kg" style="align-items:center">
         <button type="button" class="btn btn-sm" data-t="kgdec" aria-label="Menos peso">−</button>
-        <b style="min-width:92px;text-align:center">${e.kg ? `${fmtKg(e.kg)} kg` : 'Sin peso'}</b>
+        <b style="min-width:92px;text-align:center;line-height:1.25">${e.kg ? kgLabel(e.kg, exDb(e.exerciseId)) : 'Sin peso'}</b>
         <button type="button" class="btn btn-sm" data-t="kginc" aria-label="Más peso">+</button>
       </div>
-      ${last ? `<p class="trn-last">La última vez (${esc(relDay(last.date))}): <b>${last.kg ? `${fmtKg(last.kg)} kg × ` : ''}${last.sets.join(' · ')}</b></p>` : ''}
+      ${last ? `<p class="trn-last">La última vez (${esc(relDay(last.date))}): <b>${last.kg ? `${kgLabel(last.kg, exDb(e.exerciseId))} × ` : ''}${last.sets.join(' · ')}</b></p>` : ''}
       <p class="trn-today">${esc(plan.note)}</p>
       ${e.done.length ? `<p class="trn-today">Hoy: <b>${e.done.join(' · ')}</b></p>` : ''}
       <div class="stepper" role="group" aria-label="${t.unit === 'seg' ? 'Segundos' : 'Repeticiones'} hechas">
@@ -851,8 +971,8 @@ async function onTrainClick(e) {
   switch (a) {
     case 'inc': TR.value = (Number(TR.value) || 0) + step; break;
     case 'dec': TR.value = Math.max(0, (Number(TR.value) || 0) - step); break;
-    case 'kginc': ensurePlan(e0); e0.kg = (Number(e0.kg) || 0) + KG_STEP; break;
-    case 'kgdec': ensurePlan(e0); e0.kg = Math.max(0, (Number(e0.kg) || 0) - KG_STEP) || null; break;
+    case 'kginc': ensurePlan(e0); e0.kg = (Number(e0.kg) || 0) + kgStep(e0.exerciseId); break;
+    case 'kgdec': ensurePlan(e0); e0.kg = Math.max(0, (Number(e0.kg) || 0) - kgStep(e0.exerciseId)) || null; break;
     case 'set': {
       e0.done.push(Number(TR.value) || 0);
       TR.value = null;
