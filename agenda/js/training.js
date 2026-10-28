@@ -172,6 +172,13 @@ function exDb(exerciseId) {
   }
   return TWO_DB_IDS.has(exerciseId);
 }
+/* Peso máximo que podés cargar (se cambia en Configuración): una mancuerna o dos (total). Vacío = sin tope */
+function maxKg(exerciseId) {
+  const two = exDb(exerciseId);
+  const v = DB.settings[two ? 'maxKgTwo' : 'maxKgOne'];
+  if (v === undefined) return two ? 15 : 12.5;
+  return Number(v) > 0 ? Number(v) : null;
+}
 function kgStep(exerciseId) { return exDb(exerciseId) ? 5 : KG_STEP; }
 
 function fmtKg(kg) { return String(Math.round(kg * 100) / 100).replace('.', ','); }
@@ -767,7 +774,12 @@ function ensurePlan(e) {
     const lastKg = last.kg != null ? last.kg : base;
     const full = !last.light && last.sets.length >= e.sets && last.sets.every((v) => Number(v) >= high);
     plan.base = last.sets.map(Number);
-    if (full && lastKg) {
+    const cap = maxKg(e.exerciseId);
+    if (full && lastKg && cap && lastKg + kgs > cap) {
+      e.kg = lastKg;
+      plan.extra = 1;
+      plan.note = `Ya estás en tu peso máximo (${kgLabel(lastKg, db)}): sumá repeticiones y hacelo más lento (3 segundos bajando y 1 de pausa abajo).`;
+    } else if (full && lastKg) {
       e.kg = lastKg + kgs;
       plan.up = true; plan.base = null;
       plan.note = `La vez pasada completaste ${high} ${unit} en todas las series con ${kgLabel(lastKg, db)}: hoy subí a ${kgLabel(e.kg, db)} y apuntá a ${low}.`;
@@ -971,7 +983,13 @@ async function onTrainClick(e) {
   switch (a) {
     case 'inc': TR.value = (Number(TR.value) || 0) + step; break;
     case 'dec': TR.value = Math.max(0, (Number(TR.value) || 0) - step); break;
-    case 'kginc': ensurePlan(e0); e0.kg = (Number(e0.kg) || 0) + kgStep(e0.exerciseId); break;
+    case 'kginc': {
+      ensurePlan(e0);
+      const nk = (Number(e0.kg) || 0) + kgStep(e0.exerciseId), cap = maxKg(e0.exerciseId);
+      if (cap && nk > cap) { toast(`Tu peso máximo es ${fmtKg(cap)} kg. Se cambia en Configuración.`); return; }
+      e0.kg = nk;
+      break;
+    }
     case 'kgdec': ensurePlan(e0); e0.kg = Math.max(0, (Number(e0.kg) || 0) - kgStep(e0.exerciseId)) || null; break;
     case 'set': {
       e0.done.push(Number(TR.value) || 0);

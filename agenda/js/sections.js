@@ -591,6 +591,11 @@ function renderSettings() {
           <label class="field"><span>Ingreso mensual <small>(opcional)</small></span><input type="number" min="0" step="any" data-set="monthlyIncomeGoal" data-type="num" value="${s.monthlyIncomeGoal ?? ''}"></label>
           <label class="field"><span>Entrenamientos por semana</span><input type="number" min="0" max="14" step="1" data-set="weeklyTrainingGoal" data-type="num" value="${s.weeklyTrainingGoal ?? ''}"></label>
         </div>
+        <div class="grid-2">
+          <label class="field"><span>Peso máximo con una mancuerna (kg)</span><input type="number" min="0" step="any" data-set="maxKgOne" data-type="num" value="${s.maxKgOne === undefined ? 12.5 : (s.maxKgOne ?? '')}"></label>
+          <label class="field"><span>Peso máximo con dos mancuernas, total (kg)</span><input type="number" min="0" step="any" data-set="maxKgTwo" data-type="num" value="${s.maxKgTwo === undefined ? 15 : (s.maxKgTwo ?? '')}"></label>
+        </div>
+        <p class="muted small">Tope de lo que podés cargar hoy. La app no te sugiere subir de ahí y te propone sumar repeticiones. Cuando compres más pesas, subilo. Vacío = sin tope.</p>
       </section>
 
       <section class="block">
