@@ -56,9 +56,9 @@ function defaultSettings() {
     notifyExams: true,         // cuenta regresiva de parciales, finales y entregas
     notifyMoney: true,         // cobros que vencen
     pushTopic: '',             // canal de ntfy para avisos en el teléfono ('' = desactivado)
-    italianStart: '2026-11-20', // curso de italiano: primer día del plan
-    italianDays: [1, 2, 3, 4, 5], // días con lección (0 = domingo)
-    italianExamDay: 0,         // día del examen integral semanal
+    italianStart: '2026-11-20', // curso de italiano: arranque sugerido (se puede empezar antes)
+    italianDays: [1, 2, 3, 4, 5, 6], // días de estudio (0 = domingo)
+    italianPace: 'auto',       // lecciones por día: 'auto' (según cómo te va) o un número
     italianPass: 70,           // nota para aprobar (%)
     italianRate: 0.9,          // velocidad de la voz
   };
