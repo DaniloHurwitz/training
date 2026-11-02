@@ -45,7 +45,7 @@ const IT_LESSONS = [
     ['wr', 'Escribí en italiano el número 5 (pista: suena «chinkue»).', ['cinque']],
   ] },
 
-{ n: 2, w: 1, cat: 'practico', title: 'Pronunciación II y el alfabeto', goal: 'Dominar GN, GLI, SC, Z, las consonantes dobles y el acento.',
+{ n: 2, w: 1, cat: 'practico', title: 'Pronunciación II: grupos, dobles y acento', goal: 'Dominar GN, GLI, SC, Z, las consonantes dobles y el acento.',
   blocks: [
     ['p', 'Hoy terminamos los sonidos "raros". Con esto ya tenés el mapa completo de la pronunciación.'],
     ['h', 'Los grupos especiales'],
@@ -56,12 +56,8 @@ const IT_LESSONS = [
     ['v', [['nono', 'noveno'], ['nonno', 'abuelo'], ['caro', 'caro / querido'], ['carro', 'carro'], ['pala', 'pala'], ['palla', 'pelota'], ['papa', 'papa (el Papa)'], ['pappa', 'papilla']]],
     ['h', 'El acento'],
     ['p', 'La mayoría de las palabras son graves, como "casa". La tilde se escribe <b>solo cuando el acento cae en la última sílaba</b>: <i>città, perché, caffè, università</i>. Eso te sirve para leer sin dudar.'],
-    ['h', 'El alfabeto'],
-    ['p', 'Tiene 21 letras. J, K, W, X e Y existen solo en palabras extranjeras. Los nombres de las letras te van a servir para deletrear tu nombre o un mail por teléfono, algo que vas a usar seguro.'],
-    ['v', [['a', 'A'], ['bi', 'B'], ['ci', 'C'], ['di', 'D'], ['e', 'E'], ['effe', 'F'], ['gi', 'G'], ['acca', 'H'], ['i', 'I'], ['elle', 'L'], ['emme', 'M'], ['enne', 'N'], ['o', 'O'], ['pi', 'P'], ['cu', 'Q'], ['erre', 'R'], ['esse', 'S'], ['ti', 'T'], ['u', 'U'], ['vu', 'V'], ['zeta', 'Z']]],
-    ['t', 'Practicá deletrear: <b>D-A-N-I-L-O</b> = «di, a, enne, i, elle, o».'],
   ],
-  tasks: ['Escribí 4 pares de palabras con consonante simple y doble, y leelos en voz alta exagerando la doble.', 'Deletreá en voz alta tu nombre y tu apellido.', 'Copiá la tabla de grupos especiales.'],
+  tasks: ['Escribí 4 pares de palabras con consonante simple y doble, y leelos en voz alta exagerando la doble.', 'Leé en voz alta 10 palabras de cualquier texto italiano aplicando las reglas de las lecciones 1 y 2.', 'Copiá la tabla de grupos especiales.'],
   speak: ['famiglia', 'gnocchi', 'pesce', 'scuola', 'grazie', 'nonno', 'palla', 'università'],
   quiz: [
     ['mc', '¿Cómo suena «gn» en «bagno»?', 'Como la ñ', ['Como «gn» en «ignorar»', 'Como «n»', 'Como «g»']],
@@ -69,7 +65,7 @@ const IT_LESSONS = [
     ['mc', '¿Qué significa «nonno»?', 'abuelo', ['noveno', 'niño', 'nunca']],
     ['mc', '¿Cuándo se escribe tilde en italiano?', 'Solo si el acento cae en la última sílaba', ['En todas las esdrújulas', 'Nunca', 'En las palabras graves']],
     ['ls', 'palla', 'pelota', ['pala', 'palo', 'papa']],
-    ['mc', '¿Cómo se dice la letra H?', 'acca', ['ache', 'hache', 'ha']],
+    ['mc', '¿Cómo suena «città»?', '«chit-TÀ», con la T doble y acento al final', ['«SI-ta»', '«ki-TA»', '«CHI-ta»']],
     ['mc', '¿Cómo suena «scuola»?', '«skuola»', ['«shuola»', '«suola»', '«chuola»']],
     ['wr', 'Escribí en italiano "familia".', ['famiglia']],
   ] },
@@ -105,7 +101,7 @@ const IT_LESSONS = [
   blocks: [
     ['h', 'Pronombres personales'],
     ['v', [['io', 'yo'], ['tu', 'vos (tú)'], ['lui', 'él'], ['lei', 'ella'], ['Lei', 'usted (con mayúscula)'], ['noi', 'nosotros / nosotras'], ['voi', 'ustedes (a un grupo)'], ['loro', 'ellos / ellas']]],
-    ['p', 'Dos cosas para un argentino. Primero: <i>voi</i> es el "vosotros" de España, pero para vos funciona como <b>ustedes</b> cuando le hablás a un grupo de amigos. Segundo: el <b>usted</b> formal se dice <i>Lei</i>, igual que "ella", y el verbo va en tercera persona. Lo vemos a fondo en la semana 5.'],
+    ['p', 'Dos cosas para un argentino. Primero: <i>voi</i> es el "vosotros" de España, pero para vos funciona como <b>ustedes</b> cuando le hablás a un grupo de amigos. Segundo: el <b>usted</b> formal se dice <i>Lei</i>, igual que "ella", y el verbo va en tercera persona. Lo vemos a fondo en la lección 26.'],
     ['p', 'Igual que en español, <b>el pronombre casi siempre se omite</b>, porque el verbo ya dice quién es. Se dice <i>Sono argentino</i>, no <i>Io sono argentino</i>. El pronombre aparece solo para remarcar o contrastar: <i>Io studio, lui lavora</i>.'],
     ['h', 'Essere: ser y estar a la vez'],
     ['p', 'En italiano no hay diferencia entre ser y estar: los dos son <i>essere</i>. Es irregular, así que se aprende de memoria. Es el verbo más importante del idioma, así que vale la pena que te salga solo.'],
@@ -129,7 +125,7 @@ const IT_LESSONS = [
     ['mc', '¿Por qué casi no se usa el pronombre?', 'Porque el verbo ya indica la persona', ['Porque es de mala educación', 'Porque no existen pronombres', 'Solo se omite en el pasado']],
   ] },
 
-{ n: 5, w: 1, cat: 'glosarios', title: 'Números del 0 al 100 y la edad', goal: 'Contar hasta 100 y decir tu edad.',
+{ n: 5, w: 1, cat: 'glosarios', title: 'Números, edad y deletrear', goal: 'Contar hasta 100, decir tu edad y deletrear tu nombre o un mail.',
   blocks: [
     ['v', [['zero', '0'], ['uno', '1'], ['due', '2'], ['tre', '3'], ['quattro', '4'], ['cinque', '5'], ['sei', '6'], ['sette', '7'], ['otto', '8'], ['nove', '9'], ['dieci', '10']]],
     ['h', 'Del 11 al 20'],
@@ -141,12 +137,17 @@ const IT_LESSONS = [
     ['p', 'Se pegan en una sola palabra: <i>venti + due = ventidue</i>. Única regla: si la unidad empieza con vocal (<b>uno</b> y <b>otto</b>), la decena pierde su última vocal: <i>ventuno, ventotto, trentuno, trentotto</i>. Con el 3 final se pone tilde: <i>ventitré</i>.'],
     ['v', [['ventuno', '21'], ['ventidue', '22'], ['ventitré', '23'], ['ventotto', '28'], ['trentuno', '31'], ['quarantacinque', '45'], ['sessantasette', '67'], ['novantanove', '99']]],
     ['h', 'La edad: con avere, igual que en español'],
-    ['p', 'En italiano la edad se "tiene", como en español: se usa el verbo <i>avere</i> (tener), que vemos completo en la lección 10. Por ahora aprendé la frase entera.'],
+    ['p', 'En italiano la edad se "tiene", como en español: se usa <i>avere</i>, que ya conocés.'],
     ['v', [['Quanti anni hai?', '¿Cuántos años tenés?'], ['Ho ventun anni.', 'Tengo 21 años.', 'ventuno pierde la O antes de «anni»'], ['Ho ventidue anni.', 'Tengo 22 años.', 'desde el 6 de diciembre'], ['Mia sorella ha diciotto anni.', 'Mi hermana tiene 18 años.'], ['Il mio numero è...', 'Mi número es...']]],
     ['t', 'Truco de práctica diaria: cada vez que veas un número (un precio, la hora, el colectivo), decilo mentalmente en italiano.'],
+    ['h', 'El alfabeto'],
+    ['p', 'El alfabeto tiene 21 letras. J, K, W, X e Y existen solo en palabras extranjeras. Los nombres de las letras te van a servir para deletrear tu nombre o un mail por teléfono, algo que vas a usar seguro.'],
+    ['v', [['a', 'A'], ['bi', 'B'], ['ci', 'C'], ['di', 'D'], ['e', 'E'], ['effe', 'F'], ['gi', 'G'], ['acca', 'H'], ['i', 'I'], ['elle', 'L'], ['emme', 'M'], ['enne', 'N'], ['o', 'O'], ['pi', 'P'], ['cu', 'Q'], ['erre', 'R'], ['esse', 'S'], ['ti', 'T'], ['u', 'U'], ['vu', 'V'], ['zeta', 'Z']]],
+    ['t', 'Practicá deletrear: <b>D-A-N-I-L-O</b> = «di, a, enne, i, elle, o».'],
+    ['v', [['Come si scrive?', '¿Cómo se escribe?'], ['La mia email è ediciones chiocciola danilohurwitz punto app.', 'Mi mail es ediciones arroba danilohurwitz punto app.', 'chiocciola = arroba (literalmente, caracol)'], ['Il mio numero è due tre zero due...', 'Mi número es 2302...']]],
   ],
-  tasks: ['Escribí del 1 al 20 de memoria y corregí con la lista.', 'Escribí en letras: 34, 58, 71, 88, 100.', 'Escribí tu edad y la de tus hermanos o tus padres en frases completas.'],
-  speak: ['diciassette', 'quattordici', 'ventuno', 'quarantacinque', 'Ho ventun anni', 'Quanti anni hai?'],
+  tasks: ['Escribí del 1 al 20 de memoria y corregí con la lista.', 'Escribí en letras: 34, 58, 71, 88, 100.', 'Deletreá en voz alta tu nombre, tu apellido y tu mail.'],
+  speak: ['diciassette', 'quattordici', 'ventuno', 'quarantacinque', 'Ho ventun anni', 'Quanti anni hai?', 'di, a, enne, i, elle, o'],
   quiz: [
     ['mc', '17 =', 'diciassette', ['settedici', 'dicisette', 'diecisette']],
     ['mc', '21 =', 'ventuno', ['ventiuno', 'venteuno', 'venti e uno']],
@@ -155,7 +156,8 @@ const IT_LESSONS = [
     ['mc', '"Tengo 21 años" =', 'Ho ventun anni', ['Sono ventuno anni', 'Ho ventuno anno', 'Ho anni ventuno']],
     ['wr', 'Escribí 60 en letras.', ['sessanta']],
     ['mc', '¿Cuánto es «novantanove»?', '99', ['19', '90', '79']],
-    ['wr', 'Escribí 13 en letras.', ['tredici']],
+    ['mc', '¿Cómo se dice la letra H?', 'acca', ['ache', 'hache', 'ha']],
+    ['wr', '¿Cómo se dice «@» en italiano?', ['chiocciola']],
   ] },
 
 /* ================= SEMANA 2 ================= */
@@ -193,12 +195,12 @@ const IT_LESSONS = [
     ['p', 'No cambian en plural: las palabras con <b>tilde final</b> (città, università, caffè), las que terminan en <b>consonante</b> (casi siempre extranjeras: bar, computer, film) y las <b>abreviadas</b> (foto, moto, cinema).'],
     ['v', [['una città → due città', 'una ciudad → dos ciudades'], ['un caffè → due caffè', 'un café → dos cafés'], ['un film → due film', 'una película → dos películas'], ['una foto → tante foto', 'una foto → muchas fotos']]],
     ['h', 'Excepciones del cuerpo humano (muy importantes para vos)'],
-    ['p', 'Algunas partes del cuerpo son masculinas en singular y <b>femeninas en -a en plural</b>. Las vas a usar en la semana 5 y en cualquier contexto médico:'],
+    ['p', 'Algunas partes del cuerpo son masculinas en singular y <b>femeninas en -a en plural</b>. Las vas a usar en la lección del cuerpo humano y en cualquier contexto médico:'],
     ['v', [['il braccio → le braccia', 'el brazo → los brazos'], ['il dito → le dita', 'el dedo → los dedos'], ['il ginocchio → le ginocchia', 'la rodilla → las rodillas'], ['l\'osso → le ossa', 'el hueso → los huesos'], ['la mano → le mani', 'la mano → las manos'], ['l\'uomo → gli uomini', 'el hombre → los hombres']]],
     ['h', 'Palabras en -co / -go y -ca / -ga'],
     ['p', 'Las femeninas en -ca / -ga agregan H para mantener el sonido «k» / «g»: <i>amica → amiche</i>. En las masculinas depende de la palabra: <i>amico → amici</i> (se suaviza), pero <i>gioco → giochi</i>. Aprendelas de a una.'],
   ],
-  tasks: ['Pasá al plural: il dottore, la ragazza, il cane, la città, il braccio, l\'amica.', 'Escribí 3 frases con plurales sobre la facultad (pazienti, lezioni, medici...).', 'Copiá la lista del cuerpo humano: te la va a tomar el examen de la semana 5.'],
+  tasks: ['Pasá al plural: il dottore, la ragazza, il cane, la città, il braccio, l\'amica.', 'Escribí 3 frases con plurales sobre la facultad (pazienti, lezioni, medici...).', 'Copiá la lista del cuerpo humano: vuelve en la lección 27.'],
   speak: ['i libri', 'le lezioni', 'i pazienti', 'le braccia', 'le ossa', 'le amiche'],
   quiz: [
     ['wr', 'Plural de «il libro»:', ['i libri']],
@@ -237,7 +239,7 @@ const IT_LESSONS = [
 { n: 9, w: 2, cat: 'gramatica', title: 'Un, una y "hay" (c\'è / ci sono)', goal: 'Usar los artículos indeterminados y decir qué hay en un lugar.',
   blocks: [
     ['tb', ['Antes de...', 'Artículo', 'Ejemplo'], [['masc. + consonante o vocal', 'un', 'un libro, un amico'], ['masc. + s+consonante, z, gn, ps', 'uno', 'uno studente, uno zaino'], ['fem. + consonante', 'una', 'una casa, una ragazza'], ['fem. + vocal', 'un\'', 'un\'amica, un\'ora']]],
-    ['p', 'Sigue la misma lógica que <i>lo</i>: <i>uno</i> va donde iría <i>lo</i>. Ojo con un detalle de escritura: <b>un amico</b> va sin apóstrofo (masculino) y <b>un\'amica</b> con apóstrofo (femenino). En el plural se usa <i>dei, degli, delle</i> (= unos, unas), que vemos con las preposiciones.'],
+    ['p', 'Sigue la misma lógica que <i>lo</i>: <i>uno</i> va donde iría <i>lo</i>. Ojo con un detalle de escritura: <b>un amico</b> va sin apóstrofo (masculino) y <b>un\'amica</b> con apóstrofo (femenino). En el plural se usa <i>dei, degli, delle</i> (= unos, unas), que vemos en la lección 19.'],
     ['h', 'Hay: c\'è y ci sono'],
     ['p', 'En español "hay" sirve para todo. En italiano cambia según lo que sigue: <b>c\'è</b> + singular, <b>ci sono</b> + plural. Literalmente es "ahí está / ahí están".'],
     ['v', [['C\'è un problema.', 'Hay un problema.'], ['Ci sono tre pazienti.', 'Hay tres pacientes.'], ['C\'è una farmacia qui vicino?', '¿Hay una farmacia cerca?'], ['Nel mio PH ci sono tre stanze.', 'En mi PH hay tres ambientes.'], ['Non c\'è tempo!', '¡No hay tiempo!'], ['Cosa c\'è?', '¿Qué pasa? / ¿Qué hay?'], ['C\'è Maia?', '¿Está Maia?']]],
@@ -259,7 +261,7 @@ const IT_LESSONS = [
 
 { n: 10, w: 2, cat: 'verbo', title: 'El verbo avere (tener)', goal: 'Conjugar avere y usar sus expresiones más comunes.',
   blocks: [
-    ['p', '<i>Avere</i> es el otro verbo base del italiano: significa "tener" y además va a servir para formar el pasado (semana 6). La H no suena nunca: <i>ho</i> se dice «o» y <i>hanno</i> se dice «anno». ¿Para qué está, entonces? Para distinguir por escrito <i>ho</i> (tengo) de <i>o</i> (o), y <i>hanno</i> (tienen) de <i>anno</i> (año).'],
+    ['p', '<i>Avere</i> es el otro verbo base del italiano: significa "tener" y además va a servir para formar el pasado (lección 28). La H no suena nunca: <i>ho</i> se dice «o» y <i>hanno</i> se dice «anno». ¿Para qué está, entonces? Para distinguir por escrito <i>ho</i> (tengo) de <i>o</i> (o), y <i>hanno</i> (tienen) de <i>anno</i> (año).'],
     ['c', 'avere', ['ho', 'hai', 'ha', 'abbiamo', 'avete', 'hanno'], ['yo tengo', 'vos tenés', 'él / ella tiene', 'nosotros tenemos', 'ustedes tienen', 'ellos tienen']],
     ['h', 'Expresiones con avere (en español usamos "tener" igual)'],
     ['v', [['Ho fame.', 'Tengo hambre.'], ['Ho sete.', 'Tengo sed.'], ['Ho sonno.', 'Tengo sueño.'], ['Ho freddo / caldo.', 'Tengo frío / calor.'], ['Ho fretta.', 'Tengo apuro.'], ['Ho paura.', 'Tengo miedo.'], ['Ho ragione.', 'Tengo razón.'], ['Hai torto.', 'Estás equivocado.'], ['Ho bisogno di...', 'Necesito...'], ['Ho voglia di...', 'Tengo ganas de...']]],

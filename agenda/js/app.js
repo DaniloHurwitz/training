@@ -40,8 +40,8 @@ function renderNav() {
     if (b.closest('.nav, .tabbar')) b.setAttribute('aria-current', String(b.dataset.section === UI.section));
   });
   document.querySelectorAll('[data-badge=receivables]').forEach((b) => { b.textContent = overdue ? String(overdue) : ''; b.hidden = !overdue; });
-  const itLate = itOverdueCount();
-  document.querySelectorAll('[data-badge=italian]').forEach((b) => { b.textContent = itLate ? String(itLate) : ''; b.hidden = !itLate; });
+  const itPending = itTodayCount();
+  document.querySelectorAll('[data-badge=italian]').forEach((b) => { b.textContent = itPending ? String(itPending) : ''; b.hidden = !itPending; });
   const more = document.querySelector('.tabbar [data-action=more]');
   if (more) more.setAttribute('aria-current', String(['income', 'rates', 'settings'].includes(UI.section)));
   const s = DB.settings;

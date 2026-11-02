@@ -30,7 +30,7 @@ IT_LESSONS.push(
     ['tb', ['', 'il', 'lo', 'l\'', 'la', 'i', 'gli', 'le'], [['di', 'del', 'dello', 'dell\'', 'della', 'dei', 'degli', 'delle'], ['a', 'al', 'allo', 'all\'', 'alla', 'ai', 'agli', 'alle'], ['da', 'dal', 'dallo', 'dall\'', 'dalla', 'dai', 'dagli', 'dalle'], ['in', 'nel', 'nello', 'nell\'', 'nella', 'nei', 'negli', 'nelle'], ['su', 'sul', 'sullo', 'sull\'', 'sulla', 'sui', 'sugli', 'sulle']]],
     ['p', 'Fijate que <i>in</i> se transforma en <i>ne-</i> (nel, nella). <i>Con</i> y <i>per</i> casi nunca se contraen: se dice <i>con il, per la</i>.'],
     ['h', '"Unos / unas" con di'],
-    ['p', 'Acá aparece lo que te debía de la lección 9: <b>dei, degli, delle</b> sirven también como "unos, unas, algunos": <i>Ho degli amici in Israele</i> = Tengo unos amigos en Israel.'],
+    ['p', 'Acá aparece lo que te debía de la lección 14: <b>dei, degli, delle</b> sirven también como "unos, unas, algunos": <i>Ho degli amici in Israele</i> = Tengo unos amigos en Israel.'],
     ['v', [['il libro del professore', 'el libro del profesor'], ['Vado al supermercato.', 'Voy al supermercado.'], ['Torno dall\'università alle sei.', 'Vuelvo de la facultad a las seis.'], ['Il gatto è sul letto.', 'El gato está sobre la cama.'], ['Nella mia stanza c\'è il computer.', 'En mi pieza está la compu.'], ['Lavoro nei fine settimana.', 'Trabajo los fines de semana.'], ['la storia della medicina', 'la historia de la medicina'], ['Ho degli amici in Israele.', 'Tengo unos amigos en Israel.']]],
     ['t', 'No intentes memorizar la tabla de una. Aprendé primero <b>del, al, nel, sul, della, alla, nella</b>: son el 80% de lo que vas a usar.'],
   ],
@@ -171,7 +171,7 @@ IT_LESSONS.push(
 
 { n: 23, w: 5, cat: 'verbo', title: 'Verbos reflexivos y tu rutina', goal: 'Contar tu rutina diaria con verbos reflexivos.',
   blocks: [
-    ['p', 'Funcionan como en español: el pronombre indica que la acción vuelve sobre uno mismo. En el infinitivo, el <i>-se</i> español es <b>-si</b> en italiano: <i>alzarsi</i> (levantarse), <i>chiamarsi</i> (llamarse; ya lo usás desde la lección 3).'],
+    ['p', 'Funcionan como en español: el pronombre indica que la acción vuelve sobre uno mismo. En el infinitivo, el <i>-se</i> español es <b>-si</b> en italiano: <i>alzarsi</i> (levantarse), <i>chiamarsi</i> (llamarse; ya lo usás desde la lección 4).'],
     ['c', 'alzarsi (levantarse)', ['mi alzo', 'ti alzi', 'si alza', 'ci alziamo', 'vi alzate', 'si alzano'], ['me levanto', 'te levantás', 'se levanta', 'nos levantamos', 'se levantan (ustedes)', 'se levantan (ellos)']],
     ['p', 'Pronombres: <b>mi, ti, si, ci, vi, si</b>. Van antes del verbo conjugado. Con un modal se pueden pegar al infinitivo: <i>Devo alzarmi presto</i> o <i>Mi devo alzare presto</i>; las dos están bien.'],
     ['v', [['svegliarsi', 'despertarse'], ['alzarsi', 'levantarse'], ['lavarsi', 'lavarse'], ['farsi la doccia', 'bañarse (ducharse)'], ['vestirsi', 'vestirse'], ['prepararsi', 'prepararse'], ['riposarsi', 'descansar'], ['addormentarsi', 'dormirse'], ['divertirsi', 'divertirse'], ['sentirsi', 'sentirse']]],
@@ -216,7 +216,7 @@ IT_LESSONS.push(
 
 { n: 25, w: 5, cat: 'glosarios', title: 'El cuerpo humano y en el médico', goal: 'Nombrar el cuerpo y manejar una consulta médica básica en italiano.',
   blocks: [
-    ['p', 'Esta es tu lección. Además de servirte en un viaje, es vocabulario que vas a usar si algún día hacés una rotación, leés papers en italiano o atendés a un paciente italiano. Recordá los plurales irregulares de la lección 7.'],
+    ['p', 'Esta es tu lección. Además de servirte en un viaje, es vocabulario que vas a usar si algún día hacés una rotación, leés papers en italiano o atendés a un paciente italiano. Recordá los plurales irregulares de la lección 12.'],
     ['h', 'Partes del cuerpo'],
     ['v', [['la testa', 'la cabeza'], ['il cervello', 'el cerebro'], ['gli occhi', 'los ojos'], ['le orecchie', 'las orejas / los oídos'], ['il naso', 'la nariz'], ['la bocca', 'la boca'], ['i denti', 'los dientes'], ['il collo', 'el cuello'], ['la spalla', 'el hombro'], ['il braccio / le braccia', 'el brazo / los brazos'], ['la mano / le mani', 'la mano / las manos'], ['il dito / le dita', 'el dedo / los dedos'], ['il petto', 'el pecho'], ['la schiena', 'la espalda'], ['la pancia', 'la panza'], ['la gamba', 'la pierna'], ['il ginocchio / le ginocchia', 'la rodilla / las rodillas'], ['il piede', 'el pie']]],
     ['h', 'Órganos'],
@@ -366,7 +366,7 @@ IT_LESSONS.push(
 const IT_TOPICS = [
   { cat: 'pasos', title: 'Primeros pasos', icon: 'walk', items: [['Aprender desde cero', 1], ['Guía de conversación', 3], ['Saludar y presentarse', 3], ['Cuando no entendés', 3]] },
   { cat: 'verbo', title: 'El verbo', icon: 'repeat', items: [['Essere', 4], ['Avere', 10], ['Presente: verbos -are', 11], ['Presente: -ere, -ire, -isc-', 12], ['Irregulares del día a día', 13], ['Verbos modales', 22], ['Reflexivos', 23], ['Piacere', 24], ['Participio', 26], ['Passato prossimo', 26], ['Passato prossimo con essere', 27], ['Imperfecto', 28], ['Futuro simple', 29], ['Imperativo', 30], ['Condicional', null], ['Passato remoto', null], ['Pluscuamperfecto', null], ['La pasiva', null], ['Impersonales', null], ['Subjuntivo', null]] },
-  { cat: 'practico', title: 'Italiano práctico', icon: 'volume', items: [['La pronunciación', 1], ['El alfabeto', 2], ['Tutearse (tu y Lei)', 21], ['La hora', 18], ['La fecha', 19], ['Dar las gracias', 3], ['En el médico', 25]] },
+  { cat: 'practico', title: 'Italiano práctico', icon: 'volume', items: [['La pronunciación', 1], ['El alfabeto', 5], ['Tutearse (tu y Lei)', 21], ['La hora', 18], ['La fecha', 19], ['Dar las gracias', 3], ['En el médico', 25]] },
   { cat: 'gramatica', title: 'Gramática', icon: 'list', items: [['Pronombres', 4], ['Género de los sustantivos', 6], ['El plural', 7], ['El artículo', 8], ['Un, una y c\'è / ci sono', 9], ['Negación', 14], ['Interrogación', 14], ['Adjetivos', 15], ['Preposiciones', 16], ['Preposiciones articuladas', 17], ['Posesivos', 20], ['Conjunciones', null], ['Adverbios', null], ['Comparativo y superlativo', null], ['Oraciones relativas', null], ['Oraciones subordinadas', null]] },
   { cat: 'glosarios', title: 'Glosarios', icon: 'table', items: [['Números', 5], ['Los colores', 15], ['La casa', 9], ['La familia', 20], ['Días y meses', 19], ['El cuerpo humano', 25], ['Gustos y tiempo libre', 24], ['La ropa', null], ['La comida y la fruta', null], ['El tiempo meteorológico', null], ['Los países', null], ['Los animales', null]] },
 ];
