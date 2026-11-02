@@ -11,7 +11,7 @@ const CLIENT_STATUS = { active: 'Activo', paused: 'Pausado', finished: 'Finaliza
 const TASK_TYPES = ['Check', 'Traducción', 'Revisión', 'Edición', 'Reunión', 'Sesión', 'Entrega', 'Administrativo'];
 const CALENDARS = ['work', 'faculty', 'training'];
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#0e7c86', '#8a5a2b'];
-const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments', 'routines', 'workouts'];
+const SYNC_COLLECTIONS = ['clients', 'subjects', 'events', 'receivables', 'payments', 'routines', 'workouts', 'italian'];
 /* Preferencias propias de cada dispositivo: no se sincronizan */
 const LOCAL_SETTINGS = ['hourHeight', 'lastBackupAt', 'theme', 'notifyEnabled'];
 
@@ -56,6 +56,11 @@ function defaultSettings() {
     notifyExams: true,         // cuenta regresiva de parciales, finales y entregas
     notifyMoney: true,         // cobros que vencen
     pushTopic: '',             // canal de ntfy para avisos en el teléfono ('' = desactivado)
+    italianStart: '2026-11-20', // curso de italiano: primer día del plan
+    italianDays: [1, 2, 3, 4, 5], // días con lección (0 = domingo)
+    italianExamDay: 0,         // día del examen integral semanal
+    italianPass: 70,           // nota para aprobar (%)
+    italianRate: 0.9,          // velocidad de la voz
   };
 }
 
@@ -75,6 +80,7 @@ function emptyData() {
     payments: [],
     routines: [],                      // rutinas de entrenamiento (ejercicios, series, repeticiones)
     workouts: [],                      // entrenamientos registrados
+    italian: [],                       // progreso del curso de italiano (lecciones y exámenes)
     deleted: {},                       // {colección: {id: fecha de borrado}}
     stamps: { settings: 0, rates: 0 }, // fecha del último cambio de configuración y tipo de cambio
     pushLog: {},                       // avisos ya programados en ntfy: {id: {at, h, t, topic, del}}
