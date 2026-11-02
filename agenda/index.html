@@ -73,6 +73,7 @@
     <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-7 0-4.5-3.5-6.5-4.5-10.5C12 6.5 11 9 11 11c-1.5-1-2-2.5-2-4C6.5 9 5 11.8 5 15c0 4.3 3 7 7 7z"/></symbol>
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
     <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
   </svg>
 
@@ -84,7 +85,7 @@
         <button data-section="training"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Entrenamiento</span></button>
         <button data-section="summary"><svg class="ic"><use href="#i-chart"/></svg><span>Resumen</span></button>
         <button data-section="clients"><svg class="ic"><use href="#i-users"/></svg><span>Clientes</span></button>
-        <button data-section="receivables"><svg class="ic"><use href="#i-inbox"/></svg><span>Cuentas por cobrar</span><b class="badge" data-badge="receivables" hidden></b></button>
+        <button data-section="italian"><svg class="ic"><use href="#i-book"/></svg><span>Italiano</span><b class="badge" data-badge="italian" hidden></b></button>
         <button data-section="income"><svg class="ic"><use href="#i-wallet"/></svg><span>Ingresos</span></button>
         <button data-section="rates"><svg class="ic"><use href="#i-exchange"/></svg><span>Tipo de cambio</span></button>
         <button data-section="settings"><svg class="ic"><use href="#i-settings"/></svg><span>Configuración</span></button>
@@ -164,6 +165,7 @@
       <section class="section" id="sec-summary" aria-label="Resumen" hidden></section>
       <section class="section" id="sec-clients" aria-label="Clientes" hidden></section>
       <section class="section" id="sec-receivables" aria-label="Cuentas por cobrar" hidden></section>
+      <section class="section sec-italian" id="sec-italian" aria-label="Italiano" hidden></section>
       <section class="section" id="sec-income" aria-label="Ingresos" hidden></section>
       <section class="section" id="sec-rates" aria-label="Tipo de cambio" hidden></section>
       <section class="section" id="sec-settings" aria-label="Configuración" hidden></section>
@@ -174,7 +176,7 @@
       <button data-section="training"><svg class="ic"><use href="#i-dumbbell"/></svg><span>Entreno</span></button>
       <button data-section="summary"><svg class="ic"><use href="#i-chart"/></svg><span>Resumen</span></button>
       <button data-section="clients"><svg class="ic"><use href="#i-users"/></svg><span>Clientes</span></button>
-      <button data-section="receivables"><svg class="ic"><use href="#i-inbox"/></svg><span>Cobros</span><b class="badge" data-badge="receivables" hidden></b></button>
+      <button data-section="italian"><svg class="ic"><use href="#i-book"/></svg><span>Italiano</span><b class="badge" data-badge="italian" hidden></b></button>
       <button data-action="more"><svg class="ic"><use href="#i-more"/></svg><span>Más</span></button>
     </nav>
     <button class="fab" data-action="new-event" aria-label="Nuevo evento"><svg class="ic"><use href="#i-plus"/></svg></button>
@@ -196,6 +198,9 @@
   <script src="js/forms.js"></script>
   <script src="js/sections.js"></script>
   <script src="js/training.js"></script>
+  <script src="js/italiano-data-1.js"></script>
+  <script src="js/italiano-data-2.js"></script>
+  <script src="js/italiano.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/notify.js"></script>
   <script src="js/digest.js"></script>

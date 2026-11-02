@@ -1,7 +1,7 @@
 'use strict';
 /* Arranque, navegación, acciones, atajos, búsqueda, filtros, tema, exportar/importar e impresión. */
 
-const SECTIONS = ['calendar', 'training', 'summary', 'clients', 'receivables', 'income', 'rates', 'settings'];
+const SECTIONS = ['calendar', 'training', 'summary', 'clients', 'italian', 'income', 'rates', 'settings'];
 
 /* ---------- Render general ---------- */
 
@@ -13,7 +13,7 @@ function renderAll() {
     case 'training': renderTraining(); break;
     case 'summary': renderSummary(); break;
     case 'clients': renderClients(); break;
-    case 'receivables': renderReceivables(); break;
+    case 'italian': renderItalian(); break;
     case 'income': renderIncome(); break;
     case 'rates': renderRates(); break;
     case 'settings': renderSettings(); break;
@@ -40,6 +40,8 @@ function renderNav() {
     if (b.closest('.nav, .tabbar')) b.setAttribute('aria-current', String(b.dataset.section === UI.section));
   });
   document.querySelectorAll('[data-badge=receivables]').forEach((b) => { b.textContent = overdue ? String(overdue) : ''; b.hidden = !overdue; });
+  const itLate = itOverdueCount();
+  document.querySelectorAll('[data-badge=italian]').forEach((b) => { b.textContent = itLate ? String(itLate) : ''; b.hidden = !itLate; });
   const more = document.querySelector('.tabbar [data-action=more]');
   if (more) more.setAttribute('aria-current', String(['income', 'rates', 'settings'].includes(UI.section)));
   const s = DB.settings;
@@ -670,6 +672,7 @@ function init() {
   setupPrint();
   if (!storageOk) toast('Este navegador no permite guardar datos (modo privado o almacenamiento bloqueado). Exportá un backup antes de cerrar.', { kind: 'error', duration: 9000 });
   showSection(UI.section || 'calendar');
+  itDailyCheck();
   initSync();
   initNotify();
   initPush();
