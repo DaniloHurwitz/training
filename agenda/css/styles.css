@@ -1770,3 +1770,4 @@ body.pop-open .pop-backdrop { display: block; position: fixed; inset: 0; z-index
   .it-task-row .btn { width: 100%; justify-content: center; }
   .it-grades { gap: 5px; }
 }
+.it-modh { grid-column: 1 / -1; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); margin: 10px 0 -4px; }

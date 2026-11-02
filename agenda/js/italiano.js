@@ -33,6 +33,8 @@ function itLesson(n) { return IT_LESSONS.find((l) => l.n === n); }
 function itLessonById(id) { return IT_LESSONS.find((l) => l.id === id); }
 function itDone(l) { return !!itL(l).done; }
 function itBlockLessons(w) { return IT_LESSONS.filter((l) => l.w === w); }
+function itMod(w) { const b = IT_WEEKS.find((x) => x.n === w); return (b && b.mod) || 1; }
+const IT_MODS = { 1: 'de cero a A2', 2: 'de A2 a B1' };
 function itBlockDone(w) { const r = itRec('W:' + w); return !!(r && r.done); }
 
 /* Modifica (o crea) un registro dentro de un commit */
@@ -267,7 +269,7 @@ function itBlock(b) {
         <table class="tbl"><tbody>${b[2].map((f, i) => `<tr><td class="muted">${pr[i]}</td><td><b lang="it">${esc(f)}</b></td><td class="muted">${esc((b[3] || [])[i] || '')}</td><td class="it-right">${itAudioBtns(all[i])}</td></tr>`).join('')}</tbody></table></div>`;
     }
     case 'd': return `<div class="it-dialog"><div class="it-conj-head"><b>Diálogo</b><button class="btn btn-sm" data-it="sayall" data-list="${esc(JSON.stringify(b[1].map((x) => x[1])))}">🔊 Escuchar el diálogo</button></div>${b[1].map((x) => `<div class="it-line"><span class="it-who">${esc(x[0])}</span><div><b lang="it">${esc(x[1])}</b><span class="muted">${esc(x[2])}</span></div>${itAudioBtns(x[1])}</div>`).join('')}</div>`;
-    case 'tb': return `<div class="tbl-wrap it-tb"><table class="tbl"><thead><tr>${b[1].map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${b[2].map((r) => `<tr>${r.map((c, i) => `<td>${i === 0 ? `<b>${esc(c)}</b>` : esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    case 'tb': return `<div class="tbl-wrap it-tb"><table class="tbl"><thead><tr>${b[1].map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${b[2].map((r) => `<tr>${r.map((c, i) => `<td>${i === 0 ? `<b>${c}</b>` : c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     default: return '';
   }
 }
@@ -315,8 +317,6 @@ function itHomeView() {
   const cs = itCardStats();
   const scores = IT_LESSONS.map((l) => itL(l).best).filter((x) => x != null);
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
-  const last = IT_LESSONS[IT_LESSONS.length - 1];
-  const finish = proj[last.n];
   const icons = { cards: 'copy', rev: 'repeat', block: 'target', lesson: 'book' };
   const sub = { cards: 'Lo que tu memoria está por olvidar. Primero esto, siempre.', rev: 'Te costó o pasó tiempo: un mini examen de 5 preguntas.', block: 'Junta todo el bloque. Aprobás con ' + st.pass + '%.', lesson: 'Lección nueva.' };
 
@@ -327,14 +327,16 @@ function itHomeView() {
     const n = T.next;
     const before = !itAnyProgress() && today < st.start;
     todayHtml = `<div class="it-hero ${n ? '' : 'is-ok'}"><div><span class="it-when">${before ? 'El plan arranca el ' + esc(fmtDateLong(st.start)) : 'Hoy ya cumpliste'}</span>
-      <h2>${n ? (before ? 'Lección 1: ' + esc(n.title) : '¡Listo por hoy! ' + icon('check')) : '¡Terminaste el Módulo 1! ' + icon('check')}</h2>
+      <h2>${n ? (before ? 'Lección 1: ' + esc(n.title) : '¡Listo por hoy! ' + icon('check')) : '¡Terminaste el curso! ' + icon('check')}</h2>
       <p class="muted">${n ? `Próxima: lección ${n.n}, ${esc(itWhen(T.nextDate).toLowerCase())}. ${before ? 'Si querés arrancar antes, dale: el plan se corre solo.' : 'Si tenés ganas, podés adelantarla.'}` : 'Seguí con las tarjetas todos los días para no olvidar.'}</p></div>
       ${n ? `<div class="it-hero-actions"><button class="btn ${before ? 'btn-primary' : ''}" data-it="open" data-n="${n.n}">${before ? icon('play') + ' Empezar ya' : 'Adelantar la lección ' + n.n}</button></div>` : ''}</div>`;
   }
 
-  return sectionHead('Italiano', itNav('home'), 'Módulo 1 · de cero a A2 · sin fechas fijas: el plan se acomoda a lo que hacés') + todayHtml + `
+  const curMod = T.next ? itMod(T.next.w) : 2;
+  const modEnd = (m) => { const ls = IT_LESSONS.filter((l) => itMod(l.w) === m); const lastL = ls[ls.length - 1]; return ls.every(itDone) ? 'completo' : 'aprox. ' + fmtDateShort(proj[lastL.n]); };
+  return sectionHead('Italiano', itNav('home'), `Módulo ${curMod} · ${IT_MODS[curMod]} · sin fechas fijas: el plan se acomoda a lo que hacés`) + todayHtml + `
     <div class="kpis it-kpis">
-      <div class="kpi"><span>Lecciones</span><b>${done} <small>/ ${IT_LESSONS.length}</small></b><small>${finish ? 'terminás aprox. el ' + esc(fmtDateShort(finish)) : 'módulo completo'}</small></div>
+      <div class="kpi"><span>Lecciones</span><b>${done} <small>/ ${IT_LESSONS.length}</small></b><small>Módulo 1: ${esc(modEnd(1))} · Módulo 2: ${esc(modEnd(2))}</small></div>
       <div class="kpi"><span>Racha</span><b>${itStreak()} <small>${itStreak() === 1 ? 'día' : 'días'}</small></b><small>días seguidos con italiano</small></div>
       <div class="kpi"><span>Palabras firmes</span><b>${cs.known} <small>/ ${cs.total}</small></b><small>tarjetas con repaso a 7 días o más</small></div>
       <div class="kpi"><span>Promedio de exámenes</span><b>${avg != null ? avg + '%' : '—'}</b><small>aprobás con ${st.pass}%</small></div>
@@ -363,7 +365,8 @@ function itPlanView() {
     const ls = itBlockLessons(w.n);
     const r = itRec('W:' + w.n);
     const ready = ls.every(itDone);
-    return `<div class="block it-week">
+    const modHead = IT_WEEKS.find((x) => itMod(x.n) === itMod(w.n)) === w ? `<h2 class="it-modh">Módulo ${itMod(w.n)} · ${IT_MODS[itMod(w.n)]}</h2>` : '';
+    return `${modHead}<div class="block it-week">
       <h2><span class="it-wn">Bloque ${w.n}</span> ${esc(w.title)}</h2>
       <p class="muted small">${esc(w.goal)}</p>
       <div class="it-list">${ls.map((l) => `<button class="it-li" data-it="open" data-n="${l.n}"><span class="it-num ${itDone(l) ? 'is-done' : ''}">${l.n}</span><span class="it-lt">${esc(l.title)}</span>${itChip(l, proj)}</button>`).join('')}
@@ -399,7 +402,7 @@ function itLessonView() {
       <span class="spacer"></span>
       ${prev ? `<button class="btn btn-ghost btn-sm" data-it="open" data-n="${prev.n}">${icon('chevron-left')} ${prev.n}</button>` : ''}
       ${next ? `<button class="btn btn-ghost btn-sm" data-it="open" data-n="${next.n}">${next.n} ${icon('chevron-right')}</button>` : ''}</div>
-    <header class="it-lhead"><span class="it-when">Lección ${l.n} · Bloque ${l.w} · ${esc(IT_CAT[l.cat])}${rec.done ? '' : ' · sugerida: ' + esc(itWhen(proj[l.n]).toLowerCase())}</span>
+    <header class="it-lhead"><span class="it-when">Módulo ${itMod(l.w)} · Lección ${l.n} · Bloque ${l.w} · ${esc(IT_CAT[l.cat])}${rec.done ? '' : ' · sugerida: ' + esc(itWhen(proj[l.n]).toLowerCase())}</span>
       <h1>${esc(l.title)}</h1><p>${esc(l.goal)}</p>
       ${rec.done ? `<span class="it-chip is-done">Completada · ${rec.best}%${rec.rating != null ? ' · ' + IT_RATINGS[rec.rating][0].toLowerCase() : ''}</span>` : ''}</header>
     <div class="seg it-steps" role="group">${steps.map(([k, t]) => `<button data-it="step" data-step="${k}" aria-pressed="${IT.step === k}">${t}</button>`).join('')}</div>
@@ -661,7 +664,7 @@ function itBlockView() {
 function itTopicsView() {
   return sectionHead('Italiano', itNav('topics'), 'Todos los temas del curso, ordenados como en Italiano Sencillo. Tocá uno para ir a su lección.') + `
     <div class="it-topics">${IT_TOPICS.map((c) => `<div class="it-tcol"><div class="it-thead"><span class="it-ticon">${icon(c.icon)}</span><h2>${esc(c.title)}</h2></div>
-      <ul>${c.items.map(([t, n]) => n ? `<li><button class="it-tlink" data-it="open" data-n="${n}">${esc(t)}</button>${itDone(itLesson(n)) ? ' <span class="it-ok">✓</span>' : ''}</li>` : `<li class="it-tsoon">${esc(t)} <small>Módulo 2</small></li>`).join('')}</ul></div>`).join('')}</div>`;
+      <ul>${c.items.map(([t, n]) => n ? `<li><button class="it-tlink" data-it="open" data-n="${n}">${esc(t)}</button>${itDone(itLesson(n)) ? ' <span class="it-ok">✓</span>' : ''}</li>` : `<li class="it-tsoon">${esc(t)} <small>Más adelante</small></li>`).join('')}</ul></div>`).join('')}</div>`;
 }
 
 function itConfigView() {
