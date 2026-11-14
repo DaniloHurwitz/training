@@ -88,7 +88,7 @@ function dailySummaryText(date) {
   const head = [`${list.length} ${list.length === 1 ? 'evento' : 'eventos'}`,
     sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '',
     sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '',
-    sum.incomeMain ? fmtMoney(sum.incomeMain, main) : ''].filter(Boolean).join(' · ');
+    sum.incomeMain ? fmtMoneyRaw(sum.incomeMain, main) : ''].filter(Boolean).join(' · ');
   const items = list.slice(0, 5).map((o) => `${fmtTime(o.start)} ${o.title}`);
   if (list.length > 5) items.push(`y ${list.length - 5} más`);
   return { title: `Hoy: ${head}`, body: items.join('\n') };

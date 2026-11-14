@@ -47,7 +47,7 @@ function occLine(o) {
     if (rt && rt.name !== o.title) bits.push(rt.name);
   } else {
     bits.push(`${o.phone ? '📱' : '💻'} ${o.title}`);
-    if (inc) bits.push(fmtMoney(inc.amount, inc.currency));
+    if (inc) bits.push(fmtMoneyRaw(inc.amount, inc.currency));
     if (o.confirmation === 'pending') bits.push('por confirmar');
   }
   const night = o.start < 6 * 60 ? '🌙 ' : '';
@@ -89,13 +89,13 @@ function studyBefore(exam, fromDate) {
 
 function attentionLines(date) {
   const lines = [];
-  for (const a of detectAlerts(date, date).filter((x) => x.type === 'overlap' || x.type === 'travel')) lines.push('⚠ ' + a.text);
+  for (const a of detectAlerts(date, date, { raw: true }).filter((x) => x.type === 'overlap' || x.type === 'travel')) lines.push('⚠ ' + a.text);
   for (const o of dayOccs(date).filter((x) => x.calendar === 'work' && x.confirmation === 'pending')) lines.push(`❓ Por confirmar: ${o.title} (${fmtTime(o.start)})`);
   // Vencido o por vencer visto desde el día del aviso (se programa con días de anticipación)
   for (const r of DB.receivables) {
     if (r.status === 'paid') continue;
-    if (overdueOn(r, date)) lines.push(`💰 Cobro vencido: ${clientName(r.clientId) || 'sin cliente'} ${fmtMoney(r.amount, r.currency)}`);
-    else if (r.dueDate && diffDays(date, r.dueDate) <= 3) lines.push(`💰 Cobro por vencer (${dayShort(r.dueDate)}): ${clientName(r.clientId) || 'sin cliente'} ${fmtMoney(r.amount, r.currency)}`);
+    if (overdueOn(r, date)) lines.push(`💰 Cobro vencido: ${clientName(r.clientId) || 'sin cliente'} ${fmtMoneyRaw(r.amount, r.currency)}`);
+    else if (r.dueDate && diffDays(date, r.dueDate) <= 3) lines.push(`💰 Cobro por vencer (${dayShort(r.dueDate)}): ${clientName(r.clientId) || 'sin cliente'} ${fmtMoneyRaw(r.amount, r.currency)}`);
   }
   return lines;
 }
@@ -128,7 +128,7 @@ function morningDigest(date, atMin) {
   if (done.length) agenda.push(`(ya pasó: ${done.map((o) => `${fmtTime(o.start)} ${o.title}`).join(', ')})`);
   const totals = [];
   if (all.length) {
-    totals.push([sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '', sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '', sum.incomeMain ? fmtMoney(sum.incomeMain, main) : ''].filter(Boolean).join(' · '));
+    totals.push([sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '', sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '', sum.incomeMain ? fmtMoneyRaw(sum.incomeMain, main) : ''].filter(Boolean).join(' · '));
     const gaps = freeGaps(date, atMin);
     if (gaps.length) totals.push('Libre: ' + gaps.join(', '));
   }
@@ -157,7 +157,7 @@ function eveningDigest(date) {
   const sections = [];
   if (night.length) sections.push(['ESTA NOCHE (MADRUGADA)', ...night.map(occLine)]);
   if (day.length) sections.push([`MAÑANA ${dayName(tomorrow).toUpperCase()} ${Number(tomorrow.slice(8))}`, ...day.map(occLine)]);
-  if (list.length) sections.push([[sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '', sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '', sum.incomeMain ? fmtMoney(sum.incomeMain, main) : ''].filter(Boolean).join(' · ')]);
+  if (list.length) sections.push([[sum.workMin ? `${fmtDur(sum.workMin)} de trabajo` : '', sum.facultyMin ? `${fmtDur(sum.facultyMin)} de facultad` : '', sum.incomeMain ? fmtMoneyRaw(sum.incomeMain, main) : ''].filter(Boolean).join(' · ')]);
   const exams = upcomingExams(tomorrow, 7).map((o) => examLine(o, tomorrow));
   if (exams.length) sections.push(['SE VIENE', ...exams]);
   const att = attentionLines(tomorrow);
@@ -172,11 +172,11 @@ function weeklyDigest(monday) {
   const to = addDays(monday, 6);
   const sum = summarize(monday, to);
   const main = mainCur();
-  const alerts = detectAlerts(monday, to);
+  const alerts = detectAlerts(monday, to, { raw: true });
   const goal = Number(s.weeklyGoalHours) || 0;
-  const title = `📅 Tu semana (${fmtDateShort(monday)} – ${fmtDateShort(to)}): ${fmtDur(sum.workMin)} de trabajo · ${fmtMoney(sum.incomeMain, main)}`;
+  const title = `📅 Tu semana (${fmtDateShort(monday)} – ${fmtDateShort(to)}): ${fmtDur(sum.workMin)} de trabajo · ${fmtMoneyRaw(sum.incomeMain, main)}`;
   const top = [
-    `TRABAJO: ${fmtDur(sum.workMin)}${goal ? ` de ${fmtNum(goal)} h ${sum.workMin >= goal * 60 ? '✓' : `(faltan ${fmtDur(goal * 60 - sum.workMin)})`}` : ''} · ${fmtMoney(sum.incomeMain, main)} estimados`,
+    `TRABAJO: ${fmtDur(sum.workMin)}${goal ? ` de ${fmtNum(goal)} h ${sum.workMin >= goal * 60 ? '✓' : `(faltan ${fmtDur(goal * 60 - sum.workMin)})`}` : ''} · ${fmtMoneyRaw(sum.incomeMain, main)} estimados`,
     `FACULTAD: ${fmtDur(sum.facultyMin)} · LIBRE: ${fmtDur(sum.freeMin)}`,
     `${sum.checks} ${sum.checks === 1 ? 'check' : 'checks'} · ${sum.workCount} tareas`,
   ];
@@ -184,7 +184,7 @@ function weeklyDigest(monday) {
   const busiest = sum.days.reduce((a, d) => (sum.byDay[d].workMin + sum.byDay[d].facultyMin > sum.byDay[a].workMin + sum.byDay[a].facultyMin ? d : a), sum.days[0]);
   const days = ['POR DÍA', perDay, `Día más cargado: ${dayName(busiest)} (${fmtDur(sum.byDay[busiest].workMin + sum.byDay[busiest].facultyMin)})`];
   const clients = [...sum.byClient.values()].sort((a, b) => b.minutes - a.minutes)
-    .map((c) => `${c.clientId ? clientName(c.clientId) || 'Cliente' : 'Sin cliente'}: ${fmtDur(c.minutes)} · ${fmtMoney(c.incomeMain, main)}`);
+    .map((c) => `${c.clientId ? clientName(c.clientId) || 'Cliente' : 'Sin cliente'}: ${fmtDur(c.minutes)} · ${fmtMoneyRaw(c.incomeMain, main)}`);
   const exams = upcomingExams(monday, 13).map((o) => examLine(o, monday));
   const att = [];
   const overlaps = alerts.filter((a) => a.type === 'overlap');
@@ -195,7 +195,7 @@ function weeklyDigest(monday) {
   if (pending.length) att.push(`❓ Por confirmar: ${pending.map((o) => `${o.title} (${dayShort(o.date)})`).join(', ')}`);
   const pendMain = sumConverted(pendingReceivables(), main);
   const overdue = DB.receivables.filter((r) => overdueOn(r, monday)).length;
-  if (pendMain > 0) att.push(`💰 ${fmtMoney(pendMain, main)} pendientes de cobro${overdue ? ` (${overdue} ${overdue === 1 ? 'vencido' : 'vencidos'})` : ''}`);
+  if (pendMain > 0) att.push(`💰 ${fmtMoneyRaw(pendMain, main)} pendientes de cobro${overdue ? ` (${overdue} ${overdue === 1 ? 'vencido' : 'vencidos'})` : ''}`);
   return {
     title,
     body: joinSections([top, days, clients.length ? ['POR CLIENTE', ...clients] : [], exams.length ? ['EXÁMENES Y ENTREGAS', ...exams] : [], att.length ? ['OJO', ...att] : []]),
@@ -242,14 +242,14 @@ function nightWarning(o) {
   return {
     title: `🌙 No te olvides: esta noche a las ${fmtTime(o.start)} tenés ${o.title}`,
     body: [`Es la madrugada del ${dayName(o.date)} (${fmtTime(o.start)}–${fmtTime(o.end)}).`,
-      [o.calendar === 'work' ? (o.phone ? '📱 desde el teléfono' : '💻 necesitás la compu') : '', inc ? fmtMoney(inc.amount, inc.currency) : ''].filter(Boolean).join(' · '),
+      [o.calendar === 'work' ? (o.phone ? '📱 desde el teléfono' : '💻 necesitás la compu') : '', inc ? fmtMoneyRaw(inc.amount, inc.currency) : ''].filter(Boolean).join(' · '),
       'Si te vas a dormir, poné una alarma.'].filter(Boolean).join('\n'),
   };
 }
 
 function paymentDue(r) {
   return {
-    title: `💰 Hoy vence el cobro de ${clientName(r.clientId) || 'un cliente'}: ${fmtMoney(r.amount, r.currency)}`,
+    title: `💰 Hoy vence el cobro de ${clientName(r.clientId) || 'un cliente'}: ${fmtMoneyRaw(r.amount, r.currency)}`,
     body: [r.concept, r.notes].filter(Boolean).join('\n') || 'Revisalo en Cuentas por cobrar.',
   };
 }

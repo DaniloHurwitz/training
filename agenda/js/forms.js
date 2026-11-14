@@ -480,7 +480,7 @@ function openEventForm(opts2 = {}) {
       const clash = getOccurrences(E.date.value, E.date.value).filter((x) =>
         !(editing && x.key === src.key) && x.start < times.end && times.start < x.end);
       warn.hidden = !clash.length;
-      warn.innerHTML = clash.length ? `${icon('alert')} <b>Solapamiento</b>: se superpone con ${clash.map((x) => `«${esc(x.title || 'Sin título')}» (${fmtTime(x.start)}–${fmtTime(x.end)})`).join(', ')}. Se puede guardar igual.` : '';
+      warn.innerHTML = clash.length ? `${icon('alert')} <b>Solapamiento</b>: se superpone con ${clash.map((x) => `«${esc(occName(x))}» (${fmtTime(x.start)}–${fmtTime(x.end)})`).join(', ')}. Se puede guardar igual.` : '';
     } else warn.hidden = true;
   }
 
@@ -571,7 +571,7 @@ async function deleteOccurrenceFlow(occ) {
   if (occ.isRecurring) {
     scope = await askScope({ title: 'Eliminar un evento que se repite', verb: 'eliminar' });
     if (!scope) return false;
-  } else if (!(await confirmDialog({ title: 'Eliminar evento', message: `¿Eliminar «${esc(occ.title || 'Sin título')}»?`, confirmText: 'Eliminar', danger: true }))) {
+  } else if (!(await confirmDialog({ title: 'Eliminar evento', message: `¿Eliminar «${esc(occName(occ))}»?`, confirmText: 'Eliminar', danger: true }))) {
     return false;
   }
   closePopover();
@@ -630,14 +630,14 @@ function openEventPopover(occ, anchor) {
   if (occ.link && /^https?:\/\//i.test(occ.link)) row('Link', `<a href="${esc(occ.link)}" target="_blank" rel="noopener noreferrer">${esc(occ.link.replace(/^https?:\/\//, '').slice(0, 40))}</a>`);
   row('Notas', occ.notes ? `<span class="pre">${esc(occ.notes)}</span>` : '');
 
-  p.innerHTML = `<div class="pop-inner" role="dialog" aria-label="${esc(occ.title)}">
+  p.innerHTML = `<div class="pop-inner" role="dialog" aria-label="${esc(occName(occ))}">
     <div class="pop-head">
       <span class="pop-swatch ev ${eventVisual(occ).cls}" style="${style}"></span>
-      <div class="pop-title"><h3>${esc(occ.title || 'Sin título')}${occ.demo ? ' <span class="tag tag-demo">demo</span>' : ''}</h3>
+      <div class="pop-title"><h3>${esc(occName(occ))}${occ.demo ? ' <span class="tag tag-demo">demo</span>' : ''}</h3>
         <p>${esc(capitalize(fmtDateLong(occ.date)))} · ${fmtTime(occ.start)}–${fmtTime(occ.end)}${occ.end > MIN_PER_DAY ? ' <span class="muted">(+1)</span>' : ''} · <b>${fmtDur(occDuration(occ))}</b></p></div>
       <button type="button" class="btn-icon" data-pop="close" aria-label="Cerrar">${icon('x')}</button>
     </div>
-    ${clashes.length ? `<div class="pop-warn">${icon('alert')} <b>Solapamiento</b> con ${clashes.map((x) => `«${esc(x.title || 'Sin título')}» ${fmtTime(x.start)}–${fmtTime(x.end)}${x.calendar !== occ.calendar ? ` (${calLabel(x.calendar)})` : ''}`).join(', ')}</div>` : ''}
+    ${clashes.length ? `<div class="pop-warn">${icon('alert')} <b>Solapamiento</b> con ${clashes.map((x) => `«${esc(occName(x))}» ${fmtTime(x.start)}–${fmtTime(x.end)}${x.calendar !== occ.calendar ? ` (${calLabel(x.calendar)})` : ''}`).join(', ')}</div>` : ''}
     <dl class="pop-dl">${rows.join('')}</dl>
     <div class="pop-actions">
       ${occ.calendar === 'training' && getRoutine(occ.routineId) ? (tstate === 'done'

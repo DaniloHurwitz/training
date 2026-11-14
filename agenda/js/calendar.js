@@ -192,6 +192,9 @@ function updateCalToolbar() {
     chips.innerHTML = `${icon('filter')} <span>${parts.join(' · ')}</span> <button class="link" data-action="clear-filters">Limpiar</button>`;
   }
   document.body.classList.toggle('panel-closed', !UI.panelOpen);
+  document.body.classList.toggle('private-mode', isPrivate());
+  const pb = document.querySelector('[data-action="toggle-privacy"]');
+  if (pb) { pb.innerHTML = icon(isPrivate() ? 'eye-off' : 'eye'); pb.setAttribute('aria-pressed', isPrivate()); pb.title = isPrivate() ? 'Mostrar nombres y montos' : 'Ocultar nombres y montos'; }
 }
 
 const GAP_PX = 18; // banda de las horas ocultas (p. ej. 02:00–08:00)
@@ -394,13 +397,13 @@ function eventBlockHtml(it, lay, ov, g, ctx) {
   }
 
   const sub = occSubtitle(o);
-  const overlapNames = ov ? [...new Set(ov.others.map((x) => x.title || 'Sin título'))].join(', ') : '';
+  const overlapNames = ov ? [...new Set(ov.others.map((x) => occName(x)))].join(', ') : '';
   const tip = [
-    o.title || 'Sin título', time + ` (${fmtDur(occDuration(o))})` + (o.end > MIN_PER_DAY ? ' · termina al día siguiente' : ''), sub,
+    occName(o), time + ` (${fmtDur(occDuration(o))})` + (o.end > MIN_PER_DAY ? ' · termina al día siguiente' : ''), sub,
     inc ? `Ingreso estimado: ${fmtMoney(inc.amount, inc.currency)}` : '',
     ov ? `⚠ Solapamiento con: ${overlapNames}` : '',
   ].filter(Boolean).join('\n');
-  const title = (it.cont ? '↳ ' : '') + (o.title || 'Sin título');
+  const title = (it.cont ? '↳ ' : '') + occName(o);
 
   let body;
   if (size === 'xs') {
@@ -604,12 +607,12 @@ function renderAgenda() {
       inc && !it.cont ? fmtMoney(inc.amount, inc.currency) : '',
       !it.cont && o.end > MIN_PER_DAY ? 'termina al día siguiente' : '',
     ].filter(Boolean).map(esc).join(' · ');
-    const extra = [o.location, o.notes].filter(Boolean).join(' · ');
+    const extra = (isPrivate() && o.calendar === 'work' ? [] : [o.location, o.notes]).filter(Boolean).join(' · ');
     html += `<li><button class="ag-item ${v.cls}${running ? ' is-now' : ''}${past ? ' is-past' : ''}" data-key="${esc(o.key)}" style="${style}">
       <span class="ag-time"><b>${fmtTime(it.s)}</b><span>${fmtTime(it.e)}</span></span>
       <span class="ag-swatch"></span>
       <span class="ag-body">
-        <span class="ag-title">${it.cont ? '↳ ' : ''}${esc(o.title || 'Sin título')}
+        <span class="ag-title">${it.cont ? '↳ ' : ''}${esc(occName(o))}
           ${o.calendar === 'work' ? `<span class="tag">${icon(o.phone ? 'phone' : 'laptop')}${o.phone ? 'Teléfono' : 'Compu'}</span>` : o.calendar === 'training' ? `<span class="tag">${icon('dumbbell')}Entrenamiento</span>${trainingOccState(o) === 'done' ? `<span class="tag tag-ok">${icon('check')}Hecho</span>` : ''}` : `<span class="tag">${icon('cap')}Facultad</span>`}
           ${o.confirmation === 'pending' && o.calendar === 'work' ? '<span class="tag tag-warn">Por confirmar</span>' : ''}
           ${o.demo ? '<span class="tag tag-demo">demo</span>' : ''}
@@ -734,7 +737,7 @@ function updateDrag() {
   const bottom = ps.length ? yOfMin(ps[ps.length - 1].e, g) : top + 14;
   ds.ghost.style.top = top + 'px';
   ds.ghost.style.height = Math.max(bottom - top, 14) + 'px';
-  const title = ds.occ ? esc(ds.occ.title || 'Sin título') : 'Nuevo evento';
+  const title = ds.occ ? esc(occName(ds.occ)) : 'Nuevo evento';
   const moved = ds.type === 'move' && ds.nd !== ds.occ.date;
   ds.ghost.innerHTML = `<b>${title}</b><span>${fmtTime(ns)}–${fmtTime(ne)} · ${fmtDur(ne - ns)}</span>${moved ? `<span>${DAY_SHORT[weekdayOf(ds.nd)]} ${Number(ds.nd.slice(8))}</span>` : ''}`;
 }

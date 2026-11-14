@@ -131,11 +131,20 @@ function fmtNum(n, maxDec = 2) {
   return r.toLocaleString('es-AR', { minimumFractionDigits: hasDec ? Math.min(2, maxDec) : 0, maximumFractionDigits: maxDec });
 }
 
-function fmtMoney(amount, cur) {
+function fmtMoneyRaw(amount, cur) {
   if (amount == null || isNaN(amount)) return '—';
   const dec = cur === 'ARS' && Math.abs(amount) >= 1000 ? 0 : 2;
   return `${cur} ${fmtNum(amount, dec)}`;
 }
+
+/* Modo privado (ojo): oculta montos y nombres de trabajos en pantalla. Las notificaciones usan fmtMoneyRaw. */
+function isPrivate() { return !!(typeof UI !== 'undefined' && UI && UI.privacy); }
+const PRIV_NAME = '••••••';
+function fmtMoney(amount, cur) {
+  if (amount == null || isNaN(amount)) return '—';
+  return isPrivate() ? '***' : fmtMoneyRaw(amount, cur);
+}
+function occName(o) { return isPrivate() && o.calendar === 'work' ? PRIV_NAME : (o.title || 'Sin título'); }
 
 function toNumber(v) {
   if (v === '' || v == null) return null;
