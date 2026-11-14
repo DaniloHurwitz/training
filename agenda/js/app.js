@@ -6,6 +6,7 @@ const SECTIONS = ['calendar', 'training', 'summary', 'clients', 'italian', 'inco
 /* ---------- Render general ---------- */
 
 function renderAll() {
+  document.body.classList.toggle('private-mode', isPrivate());
   renderNav();
   renderDemoBanner();
   switch (UI.section) {
@@ -115,7 +116,7 @@ function renderSearchResults() {
       const { style } = eventStyleVars(o);
       return `<li><button data-action="focus-occ" data-date="${o.date}" data-key="${esc(o.key)}">
         <i class="sr-sw ev ${eventVisual(o).cls}" style="${style}"></i>
-        <span class="sr-main"><b>${esc(o.title || 'Sin título')}</b><small>${esc(occSubtitle(o) || calLabel(o.calendar))}</small></span>
+        <span class="sr-main"><b>${esc(occName(o))}</b><small>${esc(occSubtitle(o) || calLabel(o.calendar))}</small></span>
         <span class="sr-when">${o.isRecurring ? icon('repeat') : ''}${DAY_SHORT[weekdayOf(o.date)]} ${fmtDateShort(o.date)}<small>${fmtTime(o.start)}</small></span>
       </button></li>`;
     }).join('')}</ul>`
@@ -319,7 +320,7 @@ function showOutOfRange(date) {
   const m = openModal({
     title: `Fuera del horario visible · ${capitalize(fmtDateLong(date))}`, size: 'sm',
     body: `<p class="muted small">Estos eventos quedan fuera de las horas visibles (${esc(segmentsLabel())}). Podés ampliar el horario en Configuración.</p>
-      <ul class="mini-list">${list.map((o) => `<li><button class="link" data-k="${esc(o.key)}"><span>${fmtTime(o.start)}–${fmtTime(o.end)}</span><b>${esc(o.title)}</b></button></li>`).join('')}</ul>`,
+      <ul class="mini-list">${list.map((o) => `<li><button class="link" data-k="${esc(o.key)}"><span>${fmtTime(o.start)}–${fmtTime(o.end)}</span><b>${esc(occName(o))}</b></button></li>`).join('')}</ul>`,
   });
   m.el.addEventListener('click', (e) => {
     const b = e.target.closest('[data-k]');
@@ -379,6 +380,7 @@ async function handleAction(a, el) {
     case 'clear-filters': clearFilters(); break;
     case 'zoom-in': zoom(1); break;
     case 'zoom-out': zoom(-1); break;
+    case 'toggle-privacy': UI.privacy = !UI.privacy; saveUI(); renderAll(); break;
     case 'toggle-panel': UI.panelOpen = !UI.panelOpen; saveUI(); renderCalendar(); break;
     case 'open-day': UI.date = el.dataset.date; setView('day'); break;
     case 'select-day': UI.date = el.dataset.date; renderCalendar(); if (currentView() === 'day') scrollToFocus(false); break;

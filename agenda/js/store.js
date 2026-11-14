@@ -100,6 +100,7 @@ function uiDefaults() {
     calFilter: 'both',
     filters: { clientIds: [], subjectIds: [], weekdays: [], types: [], device: 'all' },
     panelOpen: true,
+    privacy: false,
     summaryPeriod: 'week',
     demoBannerHidden: false,
     clientTab: 'clients',
@@ -186,7 +187,7 @@ function saveDB() {
   }
 }
 
-const UI_PERSIST = ['section', 'viewDesktop', 'viewMobile', 'calFilter', 'filters', 'panelOpen', 'summaryPeriod', 'demoBannerHidden', 'clientTab', 'clientStatus', 'receivableFilter', 'incomeFilters'];
+const UI_PERSIST = ['section', 'viewDesktop', 'viewMobile', 'calFilter', 'filters', 'panelOpen', 'privacy', 'summaryPeriod', 'demoBannerHidden', 'clientTab', 'clientStatus', 'receivableFilter', 'incomeFilters'];
 
 function saveUI() {
   try {

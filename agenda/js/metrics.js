@@ -82,7 +82,7 @@ function occSubtitle(o) {
     const r = getRoutine(o.routineId);
     return r ? [r.name !== o.title ? r.name : '', r.focus].filter(Boolean).join(' · ') : 'Sin rutina';
   }
-  if (o.calendar === 'work') return [clientName(o.clientId), o.project].filter(Boolean).join(' · ');
+  if (o.calendar === 'work') return isPrivate() ? '' : [clientName(o.clientId), o.project].filter(Boolean).join(' · ');
   const s = getSubject(o.subjectId);
   return [s && s.name, FACULTY_TYPES[o.facultyType], o.room].filter(Boolean).join(' · ');
 }
@@ -250,7 +250,8 @@ function overlapSegments(list) {
   return res;
 }
 
-function detectAlerts(from, to) {
+function detectAlerts(from, to, opts = {}) {
+  const T = (o) => (opts.raw ? o.title : occName(o));
   const s = DB.settings;
   const occs = getOccurrences(from, to);
   const alerts = [];
@@ -299,13 +300,13 @@ function detectAlerts(from, to) {
     const early = list.filter((o) => o.start < 6 * 60);
     if (early.length) {
       alerts.push({ type: 'midnight', level: 'info', date, start: early[0].start, keys: [early[0].key],
-        text: `${capitalize(dayLabel)} de madrugada: «${early[0].title || 'sin título'}» a las ${fmtTime(early[0].start)}${early.length > 1 ? ` y ${early.length - 1} más` : ''}.` });
+        text: `${capitalize(dayLabel)} de madrugada: «${T(early[0])}» a las ${fmtTime(early[0].start)}${early.length > 1 ? ` y ${early.length - 1} más` : ''}.` });
     }
     const late = list.filter((o) => o.end > MIN_PER_DAY);
     if (late.length) {
       const last = late.reduce((a, b) => (b.end > a.end ? b : a));
       alerts.push({ type: 'midnight', level: 'info', date, start: last.start, keys: [last.key],
-        text: `${capitalize(dayLabel)} terminás a las ${fmtTime(last.end)} del día siguiente (${last.title || 'sin título'}).` });
+        text: `${capitalize(dayLabel)} terminás a las ${fmtTime(last.end)} del día siguiente (${T(last)}).` });
     }
 
     // 4. Eventos muy cercanos entre sí
@@ -318,7 +319,7 @@ function detectAlerts(from, to) {
         const gap = b.start - a.end;
         if (gap > 0 && gap < gapMin && !list.some((x) => x !== a && x !== b && x.start < b.start && x.end > a.end)) {
           alerts.push({ type: 'close', level: 'info', date, start: a.end, keys: [a.key, b.key],
-            text: `Solo ${gap} min entre «${a.title}» y «${b.title}» ${dayLabel} (${fmtTime(a.end)}).` });
+            text: `Solo ${gap} min entre «${T(a)}» y «${T(b)}» ${dayLabel} (${fmtTime(a.end)}).` });
         }
       }
     }
@@ -331,7 +332,7 @@ function detectAlerts(from, to) {
       for (const w of list.filter((o) => o.calendar === 'work')) {
         if (zones.some(([zs, ze]) => w.start < ze && zs < w.end) && !(w.start < f.end && f.start < w.end)) {
           alerts.push({ type: 'travel', level: 'warning', date, start: w.start, keys: [w.key, f.key],
-            text: `«${w.title}» cae en el traslado de «${f.title}» ${dayLabel}.` });
+            text: `«${T(w)}» cae en el traslado de «${T(f)}» ${dayLabel}.` });
         }
       }
     }
@@ -369,7 +370,7 @@ function buildInsights(sum, alerts, opts = {}) {
     const top = [...sum.byClient.values()].sort((a, b) => b.minutes - a.minutes)[0];
     const pct = Math.round((top.minutes / sum.workMin) * 100);
     const name = top.clientId ? clientName(top.clientId) || 'Cliente eliminado' : 'Sin cliente';
-    if (sum.byClient.size > 1) out.push({ icon: 'pie', text: `${esc(name)} representa el <b>${pct}%</b> de tus horas de trabajo.` });
+    if (sum.byClient.size > 1) out.push({ icon: 'pie', text: `${esc(isPrivate() ? PRIV_NAME : name)} representa el <b>${pct}%</b> de tus horas de trabajo.` });
   }
   if (sum.pendingConfirmMin > 0) out.push({ icon: 'help', text: `<b>${fmtDur(sum.pendingConfirmMin)}</b> están pendientes de confirmación.` });
   const pend = pendingReceivables();

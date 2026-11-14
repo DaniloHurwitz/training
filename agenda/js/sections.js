@@ -75,7 +75,7 @@ function clientTableHtml(sum, compact) {
   const rows = clientRowsData(sum);
   const main = mainCur();
   if (!rows.length) return '<p class="muted small">Sin trabajo programado en este período.</p>';
-  const name = (r) => { const c = getClient(r.clientId); return c ? `<i class="dot" style="background:${esc(c.color)}"></i>${esc(c.name)}` : '<i class="dot"></i><span class="muted">Sin cliente</span>'; };
+  const name = (r) => { const c = getClient(r.clientId); return c ? `<i class="dot" style="background:${esc(c.color)}"></i>${esc(isPrivate() ? PRIV_NAME : c.name)}` : '<i class="dot"></i><span class="muted">Sin cliente</span>'; };
   if (compact) {
     return `<table class="tbl tbl-compact"><tbody>${rows.map((r) => `<tr${r.clientId ? ` data-action="open-client" data-id="${r.clientId}"` : ''}>
       <td class="t-name">${name(r)}</td><td class="num">${fmtDurShort(r.minutes)}</td><td class="num">${esc(fmtMoney(r.incomeMain, main))}</td></tr>`).join('')}
@@ -145,6 +145,16 @@ function renderCalPanel() {
       <h3>Alertas</h3>
       ${alertsHtml(alerts, 6)}
     </section>`;
+  if (isPrivate()) maskPanelValues(el);
+}
+
+/* Modo privado: en el panel lateral los números pasan a ** y se quitan los tooltips; barras y colores se mantienen. */
+function maskPanelValues(root) {
+  root.querySelectorAll('[data-tip],[title]').forEach((n) => { n.removeAttribute('data-tip'); n.removeAttribute('title'); });
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach((t) => { const h = t.parentElement.closest('h3'); if (h && !h.querySelector('.muted')) return; t.nodeValue = t.nodeValue.replace(/\d+(?:[.,]\d+)?/g, '**'); });
 }
 
 /* ---------- Resumen ---------- */
@@ -334,11 +344,11 @@ function openClientDrawer(id) {
       <div><dt>Dinero pendiente</dt><dd>${Object.keys(st.pending).length ? esc(fmtByCurrency(st.pending)) : '—'}</dd></div>
       <div><dt>Checks este mes</dt><dd>${st.month.checks}</dd></div>
       <div><dt>Cobrado este mes</dt><dd>${Object.keys(st.paidByCur).length ? esc(fmtByCurrency(st.paidByCur)) : '—'}</dd></div>
-      <div class="span-2"><dt>Próximo evento</dt><dd>${next ? `<button class="link" data-action="focus-occ" data-date="${next.date}" data-key="${esc(next.key)}">${esc(next.title)} · ${esc(capitalize(fmtDateLong(next.date)))} ${fmtTime(next.start)}</button>` : '<span class="muted">Sin eventos programados</span>'}</dd></div>
+      <div class="span-2"><dt>Próximo evento</dt><dd>${next ? `<button class="link" data-action="focus-occ" data-date="${next.date}" data-key="${esc(next.key)}">${esc(occName(next))} · ${esc(capitalize(fmtDateLong(next.date)))} ${fmtTime(next.start)}</button>` : '<span class="muted">Sin eventos programados</span>'}</dd></div>
     </dl>
     ${c.notes ? `<h3>Notas</h3><p class="pre">${esc(c.notes)}</p>` : ''}
     <h3>Próximos 30 días <span class="muted">(${upcoming.length})</span></h3>
-    ${upcoming.length ? `<ul class="mini-list">${upcoming.slice(0, 8).map((o) => { const inc = occIncome(o); return `<li><button class="link" data-action="focus-occ" data-date="${o.date}" data-key="${esc(o.key)}"><span>${DAY_SHORT[weekdayOf(o.date)]} ${fmtDateShort(o.date)} · ${fmtTime(o.start)}–${fmtTime(o.end)}</span><b>${esc(o.title)}</b>${inc ? `<em>${esc(fmtMoney(inc.amount, inc.currency))}</em>` : ''}</button></li>`; }).join('')}</ul>` : '<p class="muted small">Nada programado.</p>'}
+    ${upcoming.length ? `<ul class="mini-list">${upcoming.slice(0, 8).map((o) => { const inc = occIncome(o); return `<li><button class="link" data-action="focus-occ" data-date="${o.date}" data-key="${esc(o.key)}"><span>${DAY_SHORT[weekdayOf(o.date)]} ${fmtDateShort(o.date)} · ${fmtTime(o.start)}–${fmtTime(o.end)}</span><b>${esc(occName(o))}</b>${inc ? `<em>${esc(fmtMoney(inc.amount, inc.currency))}</em>` : ''}</button></li>`; }).join('')}</ul>` : '<p class="muted small">Nada programado.</p>'}
     <h3>Cobros pendientes</h3>
     ${recs.length ? `<ul class="mini-list">${recs.map((r) => `<li><span>${esc(r.concept)} · vence ${fmtDateNum(r.dueDate) || '—'}</span><b>${esc(fmtMoney(r.amount, r.currency))}</b>${receivableStatus(r) === 'overdue' ? '<span class="status st-overdue">Vencido</span>' : ''}</li>`).join('')}</ul>` : '<p class="muted small">No hay cobros pendientes.</p>'}
   </div>`;
