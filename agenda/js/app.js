@@ -363,6 +363,7 @@ function openMoreMenu() {
 
 async function handleAction(a, el) {
   const id = el.dataset.id;
+  if (formaAccion(a)) return;
   switch (a) {
     case 'prev': shiftPeriod(-1); break;
     case 'next': shiftPeriod(1); break;
@@ -678,6 +679,7 @@ function init() {
   initSync();
   initNotify();
   initPush();
+  initForma();
 }
 
 document.addEventListener('DOMContentLoaded', init);

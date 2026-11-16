@@ -631,6 +631,8 @@ function renderSettings() {
         <p class="muted small">Tareas desde el teléfono = versión clara/pastel del color. Con computadora = color sólido.</p>
       </section>
 
+      <section class="block block-wide" id="formaBlock">${formaBlockHtml()}</section>
+
       <section class="block" id="backup">
         <h2>Copia de seguridad y datos</h2>
         <p class="${backupAge > 7 ? 'warn-text' : ''}">${backupAge > 7 ? icon('alert') + ' ' : ''}Última copia de seguridad: <b>${s.lastBackupAt ? fmtDateTime(s.lastBackupAt) + ' (' + fmtRelative(s.lastBackupAt) + ')' : 'nunca'}</b></p>

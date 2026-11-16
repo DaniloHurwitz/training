@@ -181,6 +181,7 @@ function saveDB() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
     storageOk = true;
+    if (typeof formaCambio === 'function') formaCambio();
   } catch (e) {
     storageOk = false;
     if (typeof toast === 'function') toast('No se pudo guardar en este navegador (almacenamiento lleno o bloqueado). Exportá un backup.', { kind: 'error', duration: 8000 });
