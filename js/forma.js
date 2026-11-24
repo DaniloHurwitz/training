@@ -1,10 +1,8 @@
-/* ---------- Exportar para Forma ----------
-   Forma (el modo tablet de la notebook) muestra el próximo evento en su inicio. La agenda le deja un archivo,
-   proximo-evento.json, en una carpeta que elegís una vez. Solo van los próximos eventos ya calculados (título,
-   fecha, horario, lugar, calendario y color): nada de clientes, cobros, tarifas ni notas.
-   Se reescribe cada vez que se guarda algo y una vez por hora mientras la agenda está abierta.
-   Si el navegador no deja escribir en carpetas, queda la descarga manual del mismo archivo. */
-
+/* ---------- Forma ----------
+   Forma (el modo tablet de la notebook) muestra el próximo evento en su inicio. La agenda le manda sus eventos sola
+   a Forma, que escucha solo en esta misma computadora (127.0.0.1): al abrirse, cada vez que se guarda algo (también
+   lo que llega del teléfono) y una vez por hora. Van los eventos con su repetición, así Forma calcula sola los de
+   cualquier día. Queda, por si acaso, escribir en una carpeta elegida o descargar el mismo archivo. */
 const FORMA_ARCHIVO = 'proximo-evento.json';
 const FORMA_DIAS = 14;      // cuántos días hacia adelante
 const FORMA_MAXIMO = 20;    // cuántos eventos como mucho
@@ -45,7 +43,39 @@ async function formaGuardarCarpeta(h) {
   });
 }
 
-/* Los próximos eventos, desde ahora, ya con las repeticiones resueltas. */
+/* Los próximos eventos, desde ahora, ya con las repeticiones resueltas (versión 1), y además cada evento con su
+   repetición (versión 2): así Forma calcula sola los de cualquier día aunque la agenda no se abra.
+   Solo título, fecha, horario, lugar, calendario y color: nada de clientes, cobros, tarifas ni notas. */
+function formaSerie(ev) {
+  const r = ev.recurrence;
+  const base = makeOcc(ev, ev.date, null);
+  const excepciones = {};
+  for (const [orig, ov] of Object.entries(ev.exceptions || {})) {
+    if (!ov) continue;
+    excepciones[orig] = ov.deleted ? { borrada: true } : {
+      fecha: ov.date || null,
+      inicio: typeof ov.start === 'number' ? ov.start : null,
+      fin: typeof ov.end === 'number' ? ov.end : null,
+      titulo: ov.title || null,
+      lugar: ov.location || null,
+    };
+  }
+  return {
+    titulo: ev.title || 'Sin título',
+    fecha: ev.date,
+    inicio: ev.start,
+    fin: ev.end,
+    lugar: ev.location || '',
+    calendario: calLabel(ev.calendar),
+    color: occColor(base),
+    repite: r ? {
+      tipo: r.type, dias: r.days || [], cada: Math.max(1, Number(r.interval) || 1), unidad: r.unit || null,
+      termina: r.end || 'never', hasta: r.until || null, veces: Number(r.count) || 0,
+    } : null,
+    excepciones,
+  };
+}
+
 function formaContenido() {
   const ahora = nowInfo();
   const hasta = addDays(ahora.date, FORMA_DIAS);
@@ -61,11 +91,40 @@ function formaContenido() {
       calendario: calLabel(o.calendar),
       color: occColor(o),
     }));
-  return JSON.stringify({ version: 1, exportado: new Date().toISOString(), eventos }, null, 2);
+  // Solo las series que pueden tener eventos de hoy en adelante.
+  const serie = DB.events
+    .filter((ev) => { const u = seriesLastDate(ev); return !u || u >= ahora.date || Object.keys(ev.exceptions || {}).length > 0; })
+    .map(formaSerie);
+  return JSON.stringify({ version: 2, exportado: new Date().toISOString(), eventos, serie });
+}
+
+/* Forma escucha en esta misma computadora (127.0.0.1): la agenda le manda los datos sola, sin carpetas ni permisos
+   de archivos. Si Forma no está abierta, el envío falla en silencio y se vuelve a probar en el próximo cambio o a la
+   hora. Edge puede preguntar una sola vez si la agenda puede conectarse con dispositivos de esta computadora. */
+const FORMA_LOCAL = 'http://127.0.0.1:47113/agenda';
+let formaConectada = null; // fecha del último envío que Forma recibió
+
+async function formaEnviar() {
+  if (typeof fetch !== 'function') return false;
+  try {
+    const r = await fetch(FORMA_LOCAL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: formaContenido(),
+      targetAddressSpace: 'loopback',
+    });
+    if (!r.ok) return false;
+    formaConectada = new Date();
+    formaRedibujar();
+    return true;
+  } catch (e) {
+    return false; // Forma cerrada o el navegador no dejó
+  }
 }
 
 async function formaEscribir() {
-  if (!formaCarpeta || formaPermiso !== 'listo') return false;
+  const enviado = await formaEnviar();
+  if (!formaCarpeta || formaPermiso !== 'listo') return enviado;
   try {
     const archivo = await formaCarpeta.getFileHandle(FORMA_ARCHIVO, { create: true });
     const w = await archivo.createWritable();
@@ -81,7 +140,6 @@ async function formaEscribir() {
 
 /* Lo llama saveDB: junta varios cambios seguidos en una sola escritura. */
 function formaCambio() {
-  if (!formaCarpeta) return;
   clearTimeout(formaEspera);
   formaEspera = setTimeout(formaEscribir, 1500);
 }
@@ -120,26 +178,22 @@ function formaDescargar() {
 }
 
 function formaBlockHtml() {
-  let estado, botones;
-  if (!formaPuedeCarpeta()) {
-    estado = 'Este navegador no deja escribir en una carpeta. Podés descargar el archivo y guardarlo donde lo lee Forma.';
-    botones = `<button class="btn" data-action="forma-descargar">${icon('download')} Descargar el archivo</button>`;
-  } else if (!formaCarpeta) {
-    estado = 'Elegí la carpeta que te indicó Forma. Después se actualiza solo cada vez que cambies algo.';
-    botones = `<button class="btn btn-primary" data-action="forma-elegir">${icon('download')} Exportar para Forma</button>`;
-  } else if (formaPermiso !== 'listo') {
-    estado = `Exportando a la carpeta <b>${esc(formaCarpeta.name)}</b>. El navegador pide permiso de nuevo cada vez que se abre.`;
-    botones = `<button class="btn btn-primary" data-action="forma-reanudar">Seguir exportando</button>
-      <button class="btn btn-ghost" data-action="forma-dejar">Dejar de exportar</button>`;
-  } else {
-    estado = `Exportando a la carpeta <b>${esc(formaCarpeta.name)}</b>${formaUltima ? ` (última vez: ${fmtTime(formaUltima.getHours() * 60 + formaUltima.getMinutes())})` : ''}.`;
-    botones = `<button class="btn" data-action="forma-elegir">Cambiar la carpeta</button>
-      <button class="btn btn-ghost" data-action="forma-dejar">Dejar de exportar</button>`;
+  const conexion = formaConectada
+    ? `Conectada con Forma: le manda sus eventos sola (último envío: ${fmtTime(formaConectada.getHours() * 60 + formaConectada.getMinutes())}).`
+    : 'Forma no respondió todavía. Con Forma abierta en esta computadora, la agenda le manda sus eventos sola, sin exportar nada.';
+  let extra = '';
+  if (formaPuedeCarpeta() && formaCarpeta) {
+    extra = formaPermiso === 'listo'
+      ? `<p class="muted small">También escribe en la carpeta <b>${esc(formaCarpeta.name)}</b>.</p>
+        <div class="btn-row"><button class="btn btn-ghost" data-action="forma-dejar">Dejar de usar la carpeta</button></div>`
+      : `<div class="btn-row"><button class="btn btn-ghost" data-action="forma-dejar">Dejar de usar la carpeta</button></div>`;
   }
   return `<h2>Forma</h2>
-    <p>${estado}</p>
-    <p class="muted small">Solo va un archivo con los próximos ${FORMA_DIAS} días: título, horario, lugar y calendario. Nada de clientes, cobros ni notas. Si la agenda no se abre, el archivo queda como estaba y Forma muestra de cuándo es.</p>
-    <div class="btn-row">${botones}</div>`;
+    <p>${conexion}</p>
+    <p class="muted small">Solo va lo necesario para mostrar los próximos eventos: título, horario, lugar, calendario y cómo se repiten. Nada de clientes, cobros ni notas, y nada sale de esta computadora.</p>
+    <div class="btn-row"><button class="btn" data-action="forma-enviar">Mandar ahora</button>
+      <button class="btn btn-ghost" data-action="forma-descargar">${icon('download')} Descargar el archivo</button></div>
+    ${extra}`;
 }
 
 function formaRedibujar() {
@@ -153,11 +207,16 @@ function formaAccion(a) {
     case 'forma-reanudar': formaReanudar(); return true;
     case 'forma-dejar': formaDejar(); return true;
     case 'forma-descargar': formaDescargar(); return true;
+    case 'forma-enviar': formaEnviar().then((ok) => toast(ok ? 'Listo: Forma ya tiene tus eventos.' : 'Forma no respondió. ¿Está abierta?')); return true;
     default: return false;
   }
 }
 
 async function initForma() {
+  // A Forma se le manda siempre, haya carpeta o no (ya no hace falta exportar a mano).
+  await formaEnviar();
+  // Una vez por hora, por si Forma se abrió después que la agenda.
+  setInterval(formaEscribir, 60 * 60 * 1000);
   if (!formaPuedeCarpeta() || !window.indexedDB) return;
   try {
     formaCarpeta = await formaLeerCarpeta();
@@ -166,6 +225,4 @@ async function initForma() {
     await formaEscribir();
   } catch (e) { formaPermiso = 'pedir'; }
   formaRedibujar();
-  // Una vez por hora, para que el archivo no quede con eventos que ya pasaron.
-  setInterval(formaEscribir, 60 * 60 * 1000);
 }
